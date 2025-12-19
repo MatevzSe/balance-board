@@ -51,6 +51,17 @@
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 ml-2">Izberi
                     aktivnost</label>
 
+                <button onclick="app.selectGame('HOLD')"
+                    class="w-full py-4 bg-white hover:bg-teal-50 border-2 border-slate-100 hover:border-teal-200 text-teal-800 font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left">
+                    <div
+                        class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
+                        🎯</div>
+                    <div>
+                        <div class="font-bold">Drži sredino</div>
+                        <div class="text-xs text-slate-400">Fokus • 10 sekund</div>
+                    </div>
+                </button>
+
                 <button onclick="app.selectGame('COIN')"
                     class="w-full py-4 bg-white hover:bg-teal-50 border-2 border-slate-100 hover:border-teal-200 text-teal-800 font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left">
                     <div
@@ -58,7 +69,7 @@
                         💎</div>
                     <div>
                         <div class="font-bold">Lov za kovanci</div>
-                        <div class="text-xs text-slate-400">Zberi cilje • 60 sekund</div>
+                        <div class="text-xs text-slate-400">Zberi 20 kovancev</div>
                     </div>
                 </button>
 

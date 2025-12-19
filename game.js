@@ -79,7 +79,7 @@ const app = {
     isConnected: false,
 
     // Game State
-    activeGame: null, // 'COIN', 'MAZE'
+    activeGame: null, // 'COIN', 'MAZE', 'HOLD'
     difficulty: 'MEDIUM', // 'EASY', 'MEDIUM', 'HARD'
     isPlaying: false,
     inputPitch: 0,
@@ -89,12 +89,21 @@ const app = {
     playerX: 160,
     playerY: 160,
     score: 0,
-    timeLeft: 60,
+    timeLeft: 120, // 2 minutes default
     gameLoopId: null,
     timerId: null,
+    level: 1, // Current level
+
+    // Specific Mode Vars
+    coinsCollected: 0,
+    coinIdleTime: 0, // Time coin has sat uncollected
+
+    holdTarget: { x: 175, y: 175, r: 60 }, // Center target
+    holdTimer: 0, // How long currently holding
+    isHolding: false, // Visual feedback for HOLD mode
 
     // Entities
-    coinElem: document.getElementById('coin'),
+    coinElem: null, // Will be created dynamically
     playerElem: document.getElementById('player'),
     gameScoreElem: document.getElementById('game-score'),
     gameTimerElem: document.getElementById('game-timer'),
@@ -115,11 +124,9 @@ const app = {
     },
 
     handleResize() {
-        // We want to scale the entire app container to fit if width < 380px
         const appContainer = document.getElementById('main-app');
         const minWidth = 380;
         const width = window.innerWidth;
-        const height = window.innerHeight;
 
         if (width < minWidth) {
             const scale = width / minWidth;
@@ -127,7 +134,6 @@ const app = {
         } else {
             appContainer.style.transform = `scale(1)`;
         }
-
     },
 
     switchView(viewName) {
@@ -144,7 +150,7 @@ const app = {
     },
 
     showMenu() {
-        this.endGame();
+        this.endGameLogic(false); // Force stop without saving if just navigating
         this.switchView('menu');
     },
 
@@ -154,7 +160,13 @@ const app = {
             return;
         }
         this.activeGame = gameMode;
-        document.getElementById('diff-game-name').innerText = gameMode === 'COIN' ? "Lov za kovanci" : "Zen labirint";
+
+        let title = "Igra";
+        if (gameMode === 'COIN') title = "Lov za kovanci";
+        if (gameMode === 'MAZE') title = "Zen labirint";
+        if (gameMode === 'HOLD') title = "Drži sredino";
+
+        document.getElementById('diff-game-name').innerText = title;
         this.switchView('difficulty');
     },
 
@@ -164,26 +176,40 @@ const app = {
 
         // Reset Game Data
         this.score = 0;
-        this.timeLeft = 60; // 1 min for Coin Game
+        this.timeLeft = 120; // 2 min limit for all games as per user req
         this.playerX = 160;
         this.playerY = 160;
         this.isPlaying = true;
+        this.level = 1;
+
+        // Mode Specific Resets
+        this.coinsCollected = 0;
+        this.coinIdleTime = 0;
+        this.holdTimer = 0;
+        this.isHolding = false;
+        // Reset Hold Target to center initially
+        this.holdTarget = { x: GAME_SIZE / 2, y: GAME_SIZE / 2, r: 80 };
 
         this.updateHUD();
 
         // Setup Board based on game
         const gameArea = document.getElementById('game-area');
-        // Clear old dynamic elements (circles, walls)
+        // Clear old dynamic elements
         Array.from(gameArea.children).forEach(child => {
             if (child.id !== 'player') child.remove();
         });
 
+        gameArea.style.borderRadius = "10px"; // Default rect
+
         if (this.activeGame === 'COIN') {
-            gameArea.style.borderRadius = "50%"; // Circle for coin game
+            gameArea.style.borderRadius = "50%"; // Circle
             this.spawnCoin();
         } else if (this.activeGame === 'MAZE') {
-            gameArea.style.borderRadius = "10px"; // Rectangle for maze
+            gameArea.style.borderRadius = "10px";
             MazeManager.generate(difficulty);
+        } else if (this.activeGame === 'HOLD') {
+            gameArea.style.borderRadius = "50%";
+            this.updateHoldTargetVisual();
         }
 
         // Start Loop
@@ -195,54 +221,169 @@ const app = {
         this.timerId = setInterval(() => {
             this.timeLeft--;
             this.updateHUD();
-            if (this.timeLeft <= 0) this.endGame();
+
+            // Mode Specific Seconds Logic
+            if (this.activeGame === 'COIN') {
+                this.coinIdleTime++;
+                if (this.coinIdleTime > 4) { // Move every ~5s if idle
+                    if (this.coinElem) this.coinElem.remove();
+                    this.spawnCoin();
+                    this.coinIdleTime = 0;
+                }
+            }
+
+            if (this.timeLeft <= 0) this.endGameLogic(true); // Time's up
         }, 1000);
     },
 
-    endGame() {
+    endGameLogic(finished) {
         this.isPlaying = false;
         clearInterval(this.timerId);
         cancelAnimationFrame(this.gameLoopId);
 
+        if (!finished) return; // Just stopped
+
+        // Win/Loss Condition
+        // HOLD: Time up = Bad? Or just end? User said "if you dont manage [10s hold] in 2 min game over"
+        // COIN: If < 20 coins = Game Over.
+        // MAZE: If not completed = Game Over.
+
+        let success = false;
+        let message = `Čas je potekel! Rezultat: ${this.score}`;
+
+        if (this.activeGame === 'COIN') {
+            if (this.coinsCollected >= 20) {
+                success = true;
+                message = `Čestitke! Zbral si ${this.coinsCollected} kovancev!`;
+            } else {
+                message = `Konec igre! Premalo kovancev (${this.coinsCollected}/20).`;
+            }
+        } else if (this.activeGame === 'HOLD') {
+            // Score in HOLD is basically max level reached or time held?
+            // Let's rely on Score accumulated
+            message = `Konec vaje! Dosegel si stopnjo ${this.level}.`;
+        } else if (this.activeGame === 'MAZE') {
+            message = `Čas je potekel!`;
+        }
+
         // Save Stats
         if (this.score > 0) {
             ProfileManager.addSession({
-                game: this.activeGame === 'COIN' ? "Kovanci" : "Labirint",
+                game: this.activeGame === 'COIN' ? "Kovanci" : (this.activeGame === 'MAZE' ? "Labirint" : "Drži sredino"),
                 diff: this.difficulty,
                 score: this.score,
-                time: 60 - this.timeLeft, // Time played
-                coins: this.activeGame === 'COIN' ? this.score : 0,
+                time: 120 - this.timeLeft,
+                coins: this.coinsCollected,
                 mazes: this.activeGame === 'MAZE' ? Math.floor(this.score / 100) : 0
             });
         }
 
-        // If called from Menu button, we just stop. If time ran out, maybe show results?
-        // For now, simple return to menu logic handled by user click.
-        // If this was automatic (timer), go to menu.
-        if (this.timeLeft <= 0) {
-            alert(`Vaja končana! Rezultat: ${this.score}`);
-            this.showMenu();
-        }
+        alert(message);
+        this.showMenu();
     },
 
     updateHUD() {
         this.gameScoreElem.innerText = this.score;
         this.gameTimerElem.innerText = this.timeLeft + 's';
+
+        if (this.activeGame === 'COIN') {
+            this.gameScoreElem.innerText = `${this.coinsCollected}/20`;
+        }
+        if (this.activeGame === 'HOLD') {
+            this.gameScoreElem.innerText = `Lvl ${this.level}`;
+        }
     },
 
+    // --- MODE: HOLD ---
+    updateHoldTargetVisual() {
+        let el = document.getElementById('hold-target');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'hold-target';
+            el.className = 'absolute rounded-full border-4 border-teal-300 transition-all duration-300';
+            document.getElementById('game-area').appendChild(el);
+        }
+
+        const r = this.holdTarget.r * 2;
+        el.style.width = r + 'px';
+        el.style.height = r + 'px';
+        el.style.left = (this.holdTarget.x - this.holdTarget.r) + 'px';
+        el.style.top = (this.holdTarget.y - this.holdTarget.r) + 'px';
+
+        // Visual feedback for holding
+        if (this.isHolding) {
+            el.style.borderColor = "#4ade80"; // Green
+            el.style.backgroundColor = "rgba(74, 222, 128, 0.2)";
+        } else {
+            el.style.borderColor = "#f97316"; // Orange
+            el.style.backgroundColor = "transparent";
+        }
+    },
+
+    checkHoldLogic(dt) {
+        // Distance check
+        const pCx = this.playerX + PLAYER_SIZE / 2;
+        const pCy = this.playerY + PLAYER_SIZE / 2;
+        const dist = Math.sqrt(Math.pow(pCx - this.holdTarget.x, 2) + Math.pow(pCy - this.holdTarget.y, 2));
+
+        // Are we inside the target circle (allowing for player radius)?
+        // Strictly center means distance is small. 
+        // User said "hold center". Let's say player center must be within target radius.
+        if (dist < this.holdTarget.r) {
+            this.isHolding = true;
+            this.holdTimer += dt;
+
+            // 10 seconds hold to level up
+            if (this.holdTimer >= 10.0) {
+                this.levelUpHold();
+            }
+        } else {
+            this.isHolding = false;
+            this.holdTimer = 0; // Reset if left
+        }
+        this.updateHoldTargetVisual();
+    },
+
+    levelUpHold() {
+        this.level++;
+        this.holdTimer = 0;
+        this.score += 100 * this.level;
+
+        // Make harder: Smaller radius
+        this.holdTarget.r = Math.max(20, this.holdTarget.r - 10);
+
+        // Higher levels: Offset center
+        if (this.level > 2) {
+            // max offset +/- 50px
+            const offset = 50;
+            this.holdTarget.x = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
+            this.holdTarget.y = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
+
+            // Clamp to board
+            this.holdTarget.x = Math.max(60, Math.min(GAME_SIZE - 60, this.holdTarget.x));
+            this.holdTarget.y = Math.max(60, Math.min(GAME_SIZE - 60, this.holdTarget.y));
+        }
+
+        alert(`Stopnja ${this.level}!`);
+        this.updateHUD();
+    },
+
+    // --- MODE: COIN ---
     spawnCoin() {
+        // Clean old
+        if (this.coinElem) this.coinElem.remove();
+
         this.coinElem = document.createElement('div');
         this.coinElem.id = 'coin';
-        // Re-apply style manually since we removed it
-        this.coinElem.className = 'absolute w-5 h-5 rounded-full bg-orange-400 shadow-md animate-pulse';
-        // Note: Tailwind/CSS classes might be lost if we don't apply them,
-        // but 'coin' id has styles in CSS.
+        this.coinElem.className = 'absolute w-5 h-5 rounded-full bg-yellow-400 shadow-md animate-bounce';
 
         const newX = Math.random() * (GAME_SIZE - COIN_SIZE);
         const newY = Math.random() * (GAME_SIZE - COIN_SIZE);
         this.coinElem.style.left = newX + 'px';
         this.coinElem.style.top = newY + 'px';
         document.getElementById('game-area').appendChild(this.coinElem);
+
+        this.coinIdleTime = 0; // Reset idle timer
     },
 
     // BLUETOOTH
@@ -307,6 +448,8 @@ const app = {
             this.checkCoinCollision();
         } else if (this.activeGame === 'MAZE') {
             MazeManager.checkCollision(this.playerX, this.playerY);
+        } else if (this.activeGame === 'HOLD') {
+            this.checkHoldLogic(1 / 60); // approx dt
         }
 
         this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
@@ -326,9 +469,20 @@ const app = {
 
         if (dist < (PLAYER_SIZE / 2 + COIN_SIZE / 2)) {
             // Collect
-            this.score += 10;
+            this.score += 10; // Each coin is 10 points
+            this.coinsCollected++;
             this.updateHUD();
             this.coinElem.remove();
+
+            if (this.coinsCollected >= 20) {
+                // Next level / Win logic
+                // User said "move to next level"
+                this.coinsCollected = 0; // Reset for next batch? Or just Keep going? 
+                // Let's reset counter but keep score, and maybe speed up?
+                this.level++;
+                alert(`Stopnja ${this.level}! Kovanci so hitrejši.`);
+            }
+
             this.spawnCoin();
         }
     }
@@ -386,7 +540,7 @@ const MazeManager = {
                 pY + PLAYER_SIZE > w.y) {
 
                 // Hit Wall - Bounce / Penalty
-                // For 'Zen' mode, maybe just slow down or stop?
+                // For 'Zen' mode, maybe just slow down or stop? 
                 // Let's bounce back a bit
                 app.playerX -= (app.inputRoll * 5);
                 app.playerY -= (app.inputPitch * 5);
@@ -396,19 +550,17 @@ const MazeManager = {
         // Check Goal
         const goal = document.getElementById('maze-goal');
         if (goal) {
-            const gX = parseFloat(goal.style.left || (GAME_SIZE - 40)); // rough pos
+            const gX = parseFloat(goal.style.left || (GAME_SIZE - 40));
             const gY = parseFloat(goal.style.top || (GAME_SIZE - 40));
 
             // Just check distance to bottom right corner area roughly
             if (pX > GAME_SIZE - 60 && pY > GAME_SIZE - 60) {
                 // Win Level
-                app.score += 100;
-                app.timeLeft += 20; // Bonus time
+                app.score += 100 + (app.timeLeft * 10);
+                // NO Bonus time! strict limit.
                 app.updateHUD();
 
-                // Regenerate logic could go here
-                // For now, just respawn goal
-                alert("Labirint rešen! +100 tčk");
+                alert("Labirint rešen! +100 točk");
                 app.selectGame('MAZE'); // quick reset
                 app.startGame(app.difficulty);
             }
