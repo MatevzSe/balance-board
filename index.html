@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Balance Flow</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ravnotežje</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Poppins (Clean, Friendly, Modern) -->
@@ -26,27 +26,28 @@
     </div>
 
     <!-- MAIN APP CONTAINER -->
-    <div class="relative z-10 w-full h-full flex flex-col items-center justify-center p-4">
+    <div id="main-app"
+        class="relative z-10 w-full h-full flex flex-col items-center justify-center p-4 transition-transform duration-300 origin-center">
 
-        <!-- ==================== VIEW: MAIN MENU ==================== -->
+        <!-- ==================== VIEW: MAIN MENU (JEDILNIK) ==================== -->
         <div id="view-menu"
-            class="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-8 flex flex-col gap-6 transition-all">
+            class="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-6 flex flex-col gap-6 transition-all">
             <header class="text-center">
-                <h1 class="text-4xl font-semibold text-teal-800 tracking-tight">Balance Flow</h1>
-                <p class="text-sm text-slate-500 mt-1">Connect your body & mind</p>
+                <h1 class="text-4xl font-semibold text-teal-800 tracking-tight">Ravnotežje</h1>
+                <p class="text-sm text-slate-500 mt-1">Poveži telo in duha</p>
             </header>
 
             <!-- Stats / Profile Summary -->
             <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-center cursor-pointer hover:bg-slate-100 transition"
                 onclick="app.showProfile()">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Balance</div>
-                <div class="text-2xl font-bold text-slate-700 mt-1"><span id="menu-total-score">0</span> pts</div>
-                <div class="text-xs text-slate-400 mt-1">Click for Full Profile</div>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Tvoj Napredek</div>
+                <div class="text-2xl font-bold text-slate-700 mt-1"><span id="menu-total-score">0</span> tčk</div>
+                <div class="text-xs text-slate-400 mt-1">Klikni za Profil</div>
             </div>
 
             <div class="space-y-3">
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 ml-2">Select
-                    Activity</label>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 ml-2">Izberi
+                    Aktivnost</label>
 
                 <button onclick="app.selectGame('COIN')"
                     class="w-full py-4 bg-white hover:bg-teal-50 border-2 border-slate-100 hover:border-teal-200 text-teal-800 font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left">
@@ -54,8 +55,8 @@
                         class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
                         💎</div>
                     <div>
-                        <div class="font-bold">Coin Flow</div>
-                        <div class="text-xs text-slate-400">Collect targets • 60 Seconds</div>
+                        <div class="font-bold">Lov za Kovanci</div>
+                        <div class="text-xs text-slate-400">Zberi cilje • 60 Sekund</div>
                     </div>
                 </button>
 
@@ -65,60 +66,60 @@
                         class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
                         🌀</div>
                     <div>
-                        <div class="font-bold">Maze Zen</div>
-                        <div class="text-xs text-slate-400">Navigate the path • Focus</div>
+                        <div class="font-bold">Zen Labirint</div>
+                        <div class="text-xs text-slate-400">Najdi pot • Fokus</div>
                     </div>
                 </button>
             </div>
 
             <div class="pt-4 border-t border-slate-100">
-                <div id="device-status" class="text-xs text-center text-slate-400 mb-2">Device Disconnected</div>
+                <div id="device-status" class="text-xs text-center text-slate-400 mb-2">Naprava nepovezana</div>
                 <button id="connectBtn"
                     class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition-all shadow-lg">
-                    Connect Balance Board
+                    Poveži Ravnotežno Desko
                 </button>
             </div>
         </div>
 
-        <!-- ==================== VIEW: DIFFICULTY SELECT ==================== -->
+        <!-- ==================== VIEW: DIFFICULTY SELECT (TEŽAVNOST) ==================== -->
         <div id="view-difficulty"
             class="hidden w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-8 flex flex-col gap-6">
             <header class="text-center">
-                <h2 class="text-2xl font-semibold text-slate-700">Select Intensity</h2>
-                <p class="text-sm text-slate-500 mt-1">Choosing for: <span id="diff-game-name"
-                        class="font-bold text-teal-600">Game</span></p>
+                <h2 class="text-2xl font-semibold text-slate-700">Izberi Težavnost</h2>
+                <p class="text-sm text-slate-500 mt-1">Igra: <span id="diff-game-name"
+                        class="font-bold text-teal-600">Igra</span></p>
             </header>
 
             <div class="space-y-3">
                 <button onclick="app.startGame('EASY')"
                     class="w-full py-4 bg-teal-50 hover:bg-teal-100 text-teal-800 font-medium rounded-xl transition-all">
-                    🌱 Easy <span class="text-xs opacity-60 block">Slow pace, forgiving</span>
+                    🌱 Lahko <span class="text-xs opacity-60 block">Počasen tempo</span>
                 </button>
                 <button onclick="app.startGame('MEDIUM')"
                     class="w-full py-4 bg-teal-100 hover:bg-teal-200 text-teal-900 font-medium rounded-xl transition-all">
-                    🌿 Balanced <span class="text-xs opacity-60 block">Standard speed</span>
+                    🌿 Srednje <span class="text-xs opacity-60 block">Normalna hitrost</span>
                 </button>
                 <button onclick="app.startGame('HARD')"
                     class="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200">
-                    🔥 Intense <span class="text-xs opacity-80 block">Fast speed, high precision</span>
+                    🔥 Težko <span class="text-xs opacity-80 block">Visoka hitrost in natančnost</span>
                 </button>
             </div>
 
-            <button onclick="app.showMenu()" class="text-slate-400 text-sm hover:text-slate-600">Back to Menu</button>
+            <button onclick="app.showMenu()" class="text-slate-400 text-sm hover:text-slate-600">Nazaj na Meni</button>
         </div>
 
-        <!-- ==================== VIEW: GAME BOARD ==================== -->
+        <!-- ==================== VIEW: GAME BOARD (IGRA) ==================== -->
         <div id="view-game" class="hidden flex-col items-center gap-6">
             <!-- HUD -->
             <div
                 class="flex items-center gap-8 bg-white/60 backdrop-blur rounded-2xl px-8 py-3 shadow-sm border border-white/50">
                 <div class="text-center">
-                    <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Score</div>
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Točke</div>
                     <div id="game-score" class="text-2xl font-bold text-slate-700">0</div>
                 </div>
                 <div class="w-px h-8 bg-slate-200"></div>
                 <div class="text-center">
-                    <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Time</div>
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Čas</div>
                     <div id="game-timer" class="text-2xl font-bold text-slate-700">60s</div>
                 </div>
             </div>
@@ -134,16 +135,16 @@
             </div>
 
             <button onclick="app.endGame()"
-                class="px-6 py-2 bg-white/50 hover:bg-white text-slate-500 rounded-full text-sm font-medium transition">End
-                Session</button>
+                class="px-6 py-2 bg-white/50 hover:bg-white text-slate-500 rounded-full text-sm font-medium transition">Končaj
+                Vajo</button>
         </div>
 
-        <!-- ==================== VIEW: PROFILE ==================== -->
+        <!-- ==================== VIEW: PROFILE (PROFIL) ==================== -->
         <div id="view-profile"
             class="hidden w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-8 flex flex-col gap-6">
             <header class="text-center">
-                <h2 class="text-2xl font-semibold text-slate-700">Your Journey</h2>
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Total Balance Time</div>
+                <h2 class="text-2xl font-semibold text-slate-700">Tvoja Pot</h2>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Skupni Čas Ravnotežja</div>
                 <div class="text-4xl font-light text-teal-600 mt-1" id="profile-time">0m</div>
             </header>
 
@@ -151,27 +152,27 @@
                 <div class="bg-indigo-50 p-4 rounded-2xl text-center">
                     <div class="text-2xl">💎</div>
                     <div class="font-bold text-slate-700 text-lg mt-1" id="profile-coins">0</div>
-                    <div class="text-xs text-slate-500">Total Coins</div>
+                    <div class="text-xs text-slate-500">Skupaj Kovanci</div>
                 </div>
                 <div class="bg-orange-50 p-4 rounded-2xl text-center">
                     <div class="text-2xl">⚡</div>
                     <div class="font-bold text-slate-700 text-lg mt-1" id="profile-agility">0.0</div>
-                    <div class="text-xs text-slate-500">Agility Rating</div>
+                    <div class="text-xs text-slate-500">Ocena Agilnosti</div>
                 </div>
             </div>
 
             <div class="bg-slate-50 p-4 rounded-2xl">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Improvement History</div>
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Zgodovina Napredka</div>
                 <!-- Simple text-based graph for now -->
                 <div id="history-list" class="space-y-2 text-sm text-slate-600">
                     <!-- <div class="flex justify-between"><span>Session 1</span> <span>120 pts</span></div> -->
-                    <div class="text-center text-slate-400 italic">No sessions yet</div>
+                    <div class="text-center text-slate-400 italic">Ni podatkov</div>
                 </div>
             </div>
 
             <button onclick="app.showMenu()"
-                class="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-xl transition-all">Back
-                to Menu</button>
+                class="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-xl transition-all">Nazaj
+                na Meni</button>
         </div>
 
     </div>
@@ -179,5 +180,4 @@
     <script src="game.js"></script>
 </body>
 
-</html>
 ```

@@ -56,7 +56,7 @@ const ProfileManager = {
     updateUI() {
         document.getElementById('menu-total-score').innerText = Math.floor(this.data.totalCoins * 10);
         document.getElementById('profile-coins').innerText = this.data.totalCoins;
-        document.getElementById('profile-time').innerText = Math.floor(this.data.totalTimeSec / 60) + "m";
+        document.getElementById('profile-time').innerText = Math.floor(this.data.totalTimeSec / 60) + " min";
         document.getElementById('profile-agility').innerText = this.getAgilityScore();
 
         // History
@@ -65,7 +65,7 @@ const ProfileManager = {
         this.data.sessions.slice(0, 5).forEach((s, i) => {
             const div = document.createElement('div');
             div.className = "flex justify-between border-b border-slate-100 pb-1";
-            div.innerHTML = `<span>${s.game} (${s.diff})</span> <span>${s.score} pts</span>`;
+            div.innerHTML = `<span>${s.game} (${s.diff})</span> <span>${s.score} tčk</span>`;
             list.appendChild(div);
         });
     }
@@ -106,8 +106,26 @@ const app = {
         // Connect Button
         document.getElementById('connectBtn').addEventListener('click', () => this.connectBluetooth());
 
+        // Responsive Scaling
+        window.addEventListener('resize', () => this.handleResize());
+        this.handleResize(); // Initial call
+
         // Initial View
         this.switchView('menu');
+    },
+
+    handleResize() {
+        // We want to scale the entire app container to fit if width < 380px
+        const appContainer = document.getElementById('main-app');
+        const minWidth = 380;
+        const width = window.innerWidth;
+
+        if (width < minWidth) {
+            const scale = width / minWidth;
+            appContainer.style.transform = `scale(${scale})`;
+        } else {
+            appContainer.style.transform = `scale(1)`;
+        }
     },
 
     switchView(viewName) {
@@ -130,11 +148,11 @@ const app = {
 
     selectGame(gameMode) {
         if (!this.isConnected) {
-            alert("Please connect the Balance Board first!");
+            alert("Prosim, najprej poveži desko!");
             return;
         }
         this.activeGame = gameMode;
-        document.getElementById('diff-game-name').innerText = gameMode === 'COIN' ? "Coin Flow" : "Maze Zen";
+        document.getElementById('diff-game-name').innerText = gameMode === 'COIN' ? "Lov za Kovanci" : "Zen Labirint";
         this.switchView('difficulty');
     },
 
@@ -187,7 +205,7 @@ const app = {
         // Save Stats
         if (this.score > 0) {
             ProfileManager.addSession({
-                game: this.activeGame,
+                game: this.activeGame === 'COIN' ? "Kovanci" : "Labirint",
                 diff: this.difficulty,
                 score: this.score,
                 time: 60 - this.timeLeft, // Time played
@@ -200,7 +218,7 @@ const app = {
         // For now, simple return to menu logic handled by user click.
         // If this was automatic (timer), go to menu.
         if (this.timeLeft <= 0) {
-            alert(`Session Complete! Score: ${this.score}`);
+            alert(`Vaja končana! Rezultat: ${this.score}`);
             this.showMenu();
         }
     },
@@ -215,7 +233,7 @@ const app = {
         this.coinElem.id = 'coin';
         // Re-apply style manually since we removed it
         this.coinElem.className = 'absolute w-5 h-5 rounded-full bg-orange-400 shadow-md animate-pulse';
-        // Note: Tailwind/CSS classes might be lost if we don't apply them, 
+        // Note: Tailwind/CSS classes might be lost if we don't apply them,
         // but 'coin' id has styles in CSS.
 
         const newX = Math.random() * (GAME_SIZE - COIN_SIZE);
@@ -233,7 +251,7 @@ const app = {
                 optionalServices: [SERVICE_UUID]
             });
 
-            document.getElementById('device-status').innerText = "Connecting...";
+            document.getElementById('device-status').innerText = "Povezovanje...";
             this.server = await this.device.gatt.connect();
             const service = await this.server.getPrimaryService(SERVICE_UUID);
             this.characteristic = await service.getCharacteristic(CHAR_UUID);
@@ -242,13 +260,13 @@ const app = {
             this.characteristic.addEventListener('characteristicvaluechanged', (e) => this.handleData(e));
 
             this.isConnected = true;
-            document.getElementById('device-status').innerText = "Connected";
+            document.getElementById('device-status').innerText = "Povezano";
             document.getElementById('device-status').className = "text-center mb-2 text-teal-600 font-bold";
             document.getElementById('connectBtn').classList.add('hidden'); // Hide connect button
 
         } catch (error) {
             console.error(error);
-            alert("Connection Failed");
+            alert("Povezava ni uspela");
         }
     },
 
@@ -366,7 +384,7 @@ const MazeManager = {
                 pY + PLAYER_SIZE > w.y) {
 
                 // Hit Wall - Bounce / Penalty
-                // For 'Zen' mode, maybe just slow down or stop? 
+                // For 'Zen' mode, maybe just slow down or stop?
                 // Let's bounce back a bit
                 app.playerX -= (app.inputRoll * 5);
                 app.playerY -= (app.inputPitch * 5);
@@ -388,7 +406,7 @@ const MazeManager = {
 
                 // Regenerate logic could go here
                 // For now, just respawn goal
-                alert("Maze Cleared! +100pts");
+                alert("Labirint rešen! +100 tčk");
                 app.selectGame('MAZE'); // quick reset
                 app.startGame(app.difficulty);
             }
