@@ -165,6 +165,7 @@ const app = {
         if (gameMode === 'COIN') title = "Lov za kovanci";
         if (gameMode === 'MAZE') title = "Zen labirint";
         if (gameMode === 'HOLD') title = "Drži sredino";
+        if (gameMode === 'SLALOM') title = "Smučarski Slalom";
 
         document.getElementById('diff-game-name').innerText = title;
         this.switchView('difficulty');
@@ -202,7 +203,7 @@ const app = {
         gameArea.style.borderRadius = "10px"; // Default rect
 
         if (this.activeGame === 'COIN') {
-            gameArea.style.borderRadius = "50%"; // Circle
+            gameArea.style.borderRadius = "50%"; // Circle for coin game
             this.spawnCoin();
         } else if (this.activeGame === 'MAZE') {
             gameArea.style.borderRadius = "10px";
@@ -210,6 +211,11 @@ const app = {
         } else if (this.activeGame === 'HOLD') {
             gameArea.style.borderRadius = "50%";
             this.updateHoldTargetVisual();
+        } else if (this.activeGame === 'SLALOM') {
+            gameArea.style.borderRadius = "10px";
+            // Player is fixed at bottom
+            this.playerY = GAME_SIZE - 80;
+            SlalomManager.start(difficulty);
         }
 
         // Start Loop
@@ -232,8 +238,21 @@ const app = {
                 }
             }
 
-            if (this.timeLeft <= 0) this.endGameLogic(true); // Time's up
+            if (this.timeLeft <= 0) {
+                if (this.activeGame === 'SLALOM') {
+                    this.levelUpSlalom();
+                } else {
+                    this.endGameLogic(true); // Time's up
+                }
+            }
         }, 1000);
+    },
+
+    levelUpSlalom() {
+        this.level++;
+        this.timeLeft = 120; // Reset 2 mins
+        alert(`Čas je potekel! Stopnja ${this.level} - Hitreje!`);
+        this.updateHUD();
     },
 
     endGameLogic(finished) {
@@ -244,32 +263,31 @@ const app = {
         if (!finished) return; // Just stopped
 
         // Win/Loss Condition
-        // HOLD: Time up = Bad? Or just end? User said "if you dont manage [10s hold] in 2 min game over"
-        // COIN: If < 20 coins = Game Over.
-        // MAZE: If not completed = Game Over.
-
         let success = false;
         let message = `Čas je potekel! Rezultat: ${this.score}`;
 
         if (this.activeGame === 'COIN') {
             if (this.coinsCollected >= 20) {
-                success = true;
                 message = `Čestitke! Zbral si ${this.coinsCollected} kovancev!`;
             } else {
                 message = `Konec igre! Premalo kovancev (${this.coinsCollected}/20).`;
             }
         } else if (this.activeGame === 'HOLD') {
-            // Score in HOLD is basically max level reached or time held?
-            // Let's rely on Score accumulated
             message = `Konec vaje! Dosegel si stopnjo ${this.level}.`;
         } else if (this.activeGame === 'MAZE') {
             message = `Čas je potekel!`;
+        } else if (this.activeGame === 'SLALOM') {
+            if (finished === 'CRASH') {
+                message = `Zadeli ste vratca! Konec igre.`;
+            } else {
+                message = `Cilj! Prevoženih vratc: ${Math.floor(this.score / 10)}.`;
+            }
         }
 
         // Save Stats
         if (this.score > 0) {
             ProfileManager.addSession({
-                game: this.activeGame === 'COIN' ? "Kovanci" : (this.activeGame === 'MAZE' ? "Labirint" : "Drži sredino"),
+                game: this.activeGame === 'COIN' ? "Kovanci" : (this.activeGame === 'MAZE' ? "Labirint" : (this.activeGame === 'SLALOM' ? "Slalom" : "Drži sredino")),
                 diff: this.difficulty,
                 score: this.score,
                 time: 120 - this.timeLeft,
@@ -291,6 +309,9 @@ const app = {
         }
         if (this.activeGame === 'HOLD') {
             this.gameScoreElem.innerText = `Lvl ${this.level}`;
+        }
+        if (this.activeGame === 'SLALOM') {
+            this.gameScoreElem.innerText = `Hitr: ${app.level}`;
         }
     },
 
@@ -326,9 +347,6 @@ const app = {
         const pCy = this.playerY + PLAYER_SIZE / 2;
         const dist = Math.sqrt(Math.pow(pCx - this.holdTarget.x, 2) + Math.pow(pCy - this.holdTarget.y, 2));
 
-        // Are we inside the target circle (allowing for player radius)?
-        // Strictly center means distance is small. 
-        // User said "hold center". Let's say player center must be within target radius.
         if (dist < this.holdTarget.r) {
             this.isHolding = true;
             this.holdTimer += dt;
@@ -354,12 +372,10 @@ const app = {
 
         // Higher levels: Offset center
         if (this.level > 2) {
-            // max offset +/- 50px
             const offset = 50;
             this.holdTarget.x = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
             this.holdTarget.y = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
 
-            // Clamp to board
             this.holdTarget.x = Math.max(60, Math.min(GAME_SIZE - 60, this.holdTarget.x));
             this.holdTarget.y = Math.max(60, Math.min(GAME_SIZE - 60, this.holdTarget.y));
         }
@@ -370,7 +386,6 @@ const app = {
 
     // --- MODE: COIN ---
     spawnCoin() {
-        // Clean old
         if (this.coinElem) this.coinElem.remove();
 
         this.coinElem = document.createElement('div');
@@ -383,7 +398,7 @@ const app = {
         this.coinElem.style.top = newY + 'px';
         document.getElementById('game-area').appendChild(this.coinElem);
 
-        this.coinIdleTime = 0; // Reset idle timer
+        this.coinIdleTime = 0;
     },
 
     // BLUETOOTH
@@ -424,14 +439,23 @@ const app = {
     gameLoop() {
         if (!this.isPlaying) return;
 
-        // Difficulty Multiplier
+        // Difficulty Multiplier check
         let speed = 1.0;
         if (this.difficulty === 'MEDIUM') speed = 1.5;
         if (this.difficulty === 'HARD') speed = 2.0;
 
-        // Update Physics
-        this.playerX += this.inputRoll * speed;
-        this.playerY += this.inputPitch * speed;
+        // Player Move Logic
+        if (this.activeGame === 'SLALOM') {
+            // Slalom: Only X moves. Y is fixed.
+            this.playerX += this.inputRoll * speed * 1.5;
+            // Keep player Y fixed
+            this.playerElem.style.top = this.playerY + 'px';
+        } else {
+            // Normal 2D movement
+            this.playerX += this.inputRoll * speed;
+            this.playerY += this.inputPitch * speed;
+            this.playerElem.style.top = this.playerY + 'px';
+        }
 
         // Boundary Checks
         if (this.playerX < 0) this.playerX = 0;
@@ -439,9 +463,7 @@ const app = {
         if (this.playerY < 0) this.playerY = 0;
         if (this.playerY > GAME_SIZE - PLAYER_SIZE) this.playerY = GAME_SIZE - PLAYER_SIZE;
 
-        // Render Player
         this.playerElem.style.left = this.playerX + 'px';
-        this.playerElem.style.top = this.playerY + 'px';
 
         // Collision Logic
         if (this.activeGame === 'COIN') {
@@ -450,6 +472,8 @@ const app = {
             MazeManager.checkCollision(this.playerX, this.playerY);
         } else if (this.activeGame === 'HOLD') {
             this.checkHoldLogic(1 / 60); // approx dt
+        } else if (this.activeGame === 'SLALOM') {
+            SlalomManager.update();
         }
 
         this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
@@ -468,22 +492,151 @@ const app = {
         const dist = Math.sqrt(Math.pow(pCenterX - cCenterX, 2) + Math.pow(pCenterY - cCenterY, 2));
 
         if (dist < (PLAYER_SIZE / 2 + COIN_SIZE / 2)) {
-            // Collect
-            this.score += 10; // Each coin is 10 points
+            this.score += 10;
             this.coinsCollected++;
             this.updateHUD();
             this.coinElem.remove();
 
             if (this.coinsCollected >= 20) {
-                // Next level / Win logic
-                // User said "move to next level"
-                this.coinsCollected = 0; // Reset for next batch? Or just Keep going? 
-                // Let's reset counter but keep score, and maybe speed up?
+                this.coinsCollected = 0;
                 this.level++;
                 alert(`Stopnja ${this.level}! Kovanci so hitrejši.`);
             }
 
             this.spawnCoin();
+        }
+    }
+};
+
+// --- SLALOM MANAGER ---
+const SlalomManager = {
+    gates: [],
+    baseSpeed: 2.0,
+    gatesPassed: 0,
+
+    start(difficulty) {
+        this.gates = [];
+        this.gatesPassed = 0;
+        this.baseSpeed = difficulty === 'HARD' ? 3.0 : (difficulty === 'MEDIUM' ? 2.0 : 1.5);
+        // Pre-spawn some gates
+        this.spawnGate(-100);
+        this.spawnGate(-300);
+    },
+
+    spawnGate(yPos) {
+        // Gap width
+        const gap = 80;
+        // Gap X center random (avoid edges)
+        const minX = 40;
+        const maxX = GAME_SIZE - 40;
+        const gapX = Math.random() * (maxX - minX - gap) + minX;
+
+        // We actually draw 2 divs: Left Wall and Right Wall
+        const area = document.getElementById('game-area');
+
+        const gateL = document.createElement('div');
+        gateL.className = 'slalom-gate absolute bg-red-400 rounded-r';
+        gateL.style.height = '10px';
+        gateL.style.width = gapX + 'px';
+        gateL.style.left = '0px';
+        gateL.style.top = yPos + 'px';
+
+        const gateR = document.createElement('div');
+        gateR.className = 'slalom-gate absolute bg-blue-400 rounded-l';
+        gateR.style.height = '10px';
+        gateR.style.width = (GAME_SIZE - (gapX + gap)) + 'px';
+        gateR.style.right = '0px';
+        gateR.style.top = yPos + 'px';
+
+        area.appendChild(gateL);
+        area.appendChild(gateR);
+
+        this.gates.push({
+            y: yPos,
+            gapX: gapX,
+            gapW: gap,
+            elL: gateL,
+            elR: gateR,
+            passed: false
+        });
+    },
+
+    update() {
+        // Update Logic: Move gates down
+        // Speed increases with level
+        const currentSpeed = this.baseSpeed + (app.level * 0.5);
+
+        for (let i = this.gates.length - 1; i >= 0; i--) {
+            const g = this.gates[i];
+            g.y += currentSpeed;
+
+            g.elL.style.top = g.y + 'px';
+            g.elR.style.top = g.y + 'px';
+
+            // Check Collision / Pass
+            // Player is at app.playerY (bottom of screen)
+            // Gate must intersect Player lines
+
+            const playerTop = app.playerY;
+            const playerBot = app.playerY + PLAYER_SIZE;
+
+            // Overlapping Y? gate is 10px high
+            if (g.y + 10 > playerTop && g.y < playerBot) {
+                // Check X Logic
+                // We are SAFE if player is within gap
+                const pLeft = app.playerX;
+                const pRight = app.playerX + PLAYER_SIZE;
+
+                const gapLeft = g.gapX;
+                const gapRight = g.gapX + g.gapW;
+
+                if (pLeft > gapLeft && pRight < gapRight) {
+                    // Inside Gap - OK
+                    if (!g.passed) {
+                        // Just entering visual feedback?
+                        g.elL.style.backgroundColor = '#4ade80'; // Green
+                        g.elR.style.backgroundColor = '#4ade80';
+                    }
+                } else {
+                    // Hit Wall
+                    if (!g.passed) { // Only hit once
+                        g.elL.style.backgroundColor = '#f87171'; // Red
+                        g.elR.style.backgroundColor = '#f87171';
+                        app.endGameLogic(true, 'CRASH');
+                        return;
+                    }
+                }
+            }
+
+            // Passed Player
+            if (g.y > playerBot && !g.passed) {
+                g.passed = true;
+                // Determine if we actually "cleared" it for points logic -> simplified above visually
+                // If it was green -> points?
+                // For prototype, let's just award points for passing Y threshold without being "hit" logic storage.
+                // Simplified: Just +10 points for every gate that goes off screen
+                app.score += 10;
+                this.gatesPassed++;
+                app.updateHUD();
+            }
+
+            // Remove if off screen
+            if (g.y > GAME_SIZE) {
+                g.elL.remove();
+                g.elR.remove();
+                this.gates.splice(i, 1);
+
+                // Spawn new one on top
+                // Random gap vertical distance (~200px)
+                const lastY = this.gates.length > 0 ? Math.min(...this.gates.map(x => x.y)) : 0;
+                this.spawnGate(lastY - 200);
+            }
+        }
+
+        // Ensure we always have gates coming
+        if (this.gates.length < 3) {
+            const lastY = this.gates.length > 0 ? Math.min(...this.gates.map(x => x.y)) : 0;
+            this.spawnGate(lastY - 200);
         }
     }
 };
