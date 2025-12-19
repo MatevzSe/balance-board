@@ -1,121 +1,400 @@
-// --- GAME VARIABLES ---
-let playerX = 160;
-let playerY = 160;
-let inputPitch = 0;
-let inputRoll = 0;
-let score = 0;
+/**
+ * BALANCE FLOW - PLATFORM ENGINE
+ * Handles Multi-Game logic, Profile persistence, and Bluetooth connectivity.
+ */
 
-// Constants
+// --- CONFIGURATION ---
 const GAME_SIZE = 350;
 const PLAYER_SIZE = 30;
 const COIN_SIZE = 20;
-const SPEED_FACTOR = 1.5;
 
-// DOM Elements
-const playerDiv = document.getElementById('player');
-const coinDiv = document.getElementById('coin');
-const scoreDiv = document.getElementById('score-display');
-const display = document.getElementById('data-display');
-const connectBtn = document.getElementById('connectBtn');
+// Bluetooth UUIDs
+const SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
+const CHAR_UUID = "19b10001-e8f2-537e-4f6c-d104768a1214";
 
-// --- BLUETOOTH SETUP ---
-const serviceUUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
-const charUUID    = "19b10001-e8f2-537e-4f6c-d104768a1214";
-let device, server, service, characteristic;
+// --- PROFILE MANAGER ---
+const ProfileManager = {
+    data: {
+        totalTimeSec: 0,
+        totalCoins: 0,
+        mazesCompleted: 0,
+        sessions: []
+    },
 
-connectBtn.addEventListener('click', async () => {
-    try {
-        device = await navigator.bluetooth.requestDevice({
-            filters: [{ name: 'BalanceBoard' }],
-            optionalServices: [serviceUUID]
+    load() {
+        const stored = localStorage.getItem('balance_profile');
+        if (stored) {
+            this.data = JSON.parse(stored);
+        }
+    },
+
+    save() {
+        localStorage.setItem('balance_profile', JSON.stringify(this.data));
+        this.updateUI();
+    },
+
+    addSession(stats) {
+        this.data.totalTimeSec += stats.time || 0;
+        this.data.totalCoins += stats.coins || 0;
+        this.data.mazesCompleted += stats.mazes || 0;
+
+        // Keep last 10 sessions
+        this.data.sessions.unshift(stats);
+        if (this.data.sessions.length > 10) this.data.sessions.pop();
+
+        this.save();
+    },
+
+    getAgilityScore() {
+        // Simple heuristic: Coins per minute * 10
+        if (this.data.totalTimeSec === 0) return 0;
+        const mins = this.data.totalTimeSec / 60;
+        const score = (this.data.totalCoins / mins) * 1;
+        return score.toFixed(1);
+    },
+
+    updateUI() {
+        document.getElementById('menu-total-score').innerText = Math.floor(this.data.totalCoins * 10);
+        document.getElementById('profile-coins').innerText = this.data.totalCoins;
+        document.getElementById('profile-time').innerText = Math.floor(this.data.totalTimeSec / 60) + "m";
+        document.getElementById('profile-agility').innerText = this.getAgilityScore();
+
+        // History
+        const list = document.getElementById('history-list');
+        list.innerHTML = "";
+        this.data.sessions.slice(0, 5).forEach((s, i) => {
+            const div = document.createElement('div');
+            div.className = "flex justify-between border-b border-slate-100 pb-1";
+            div.innerHTML = `<span>${s.game} (${s.diff})</span> <span>${s.score} pts</span>`;
+            list.appendChild(div);
+        });
+    }
+};
+
+// --- APP MANAGER ---
+const app = {
+    device: null,
+    server: null,
+    characteristic: null,
+    isConnected: false,
+
+    // Game State
+    activeGame: null, // 'COIN', 'MAZE'
+    difficulty: 'MEDIUM', // 'EASY', 'MEDIUM', 'HARD'
+    isPlaying: false,
+    inputPitch: 0,
+    inputRoll: 0,
+
+    // Game Vars
+    playerX: 160,
+    playerY: 160,
+    score: 0,
+    timeLeft: 60,
+    gameLoopId: null,
+    timerId: null,
+
+    // Entities
+    coinElem: document.getElementById('coin'),
+    playerElem: document.getElementById('player'),
+    gameScoreElem: document.getElementById('game-score'),
+    gameTimerElem: document.getElementById('game-timer'),
+
+    init() {
+        ProfileManager.load();
+        ProfileManager.updateUI();
+
+        // Connect Button
+        document.getElementById('connectBtn').addEventListener('click', () => this.connectBluetooth());
+
+        // Initial View
+        this.switchView('menu');
+    },
+
+    switchView(viewName) {
+        ['menu', 'difficulty', 'game', 'profile'].forEach(v => {
+            const el = document.getElementById('view-' + v);
+            if (el) el.classList.add('hidden');
+        });
+        const target = document.getElementById('view-' + viewName);
+        if (target) target.classList.remove('hidden');
+    },
+
+    showProfile() {
+        this.switchView('profile');
+    },
+
+    showMenu() {
+        this.endGame();
+        this.switchView('menu');
+    },
+
+    selectGame(gameMode) {
+        if (!this.isConnected) {
+            alert("Please connect the Balance Board first!");
+            return;
+        }
+        this.activeGame = gameMode;
+        document.getElementById('diff-game-name').innerText = gameMode === 'COIN' ? "Coin Flow" : "Maze Zen";
+        this.switchView('difficulty');
+    },
+
+    startGame(difficulty) {
+        this.difficulty = difficulty;
+        this.switchView('game');
+
+        // Reset Game Data
+        this.score = 0;
+        this.timeLeft = 60; // 1 min for Coin Game
+        this.playerX = 160;
+        this.playerY = 160;
+        this.isPlaying = true;
+
+        this.updateHUD();
+
+        // Setup Board based on game
+        const gameArea = document.getElementById('game-area');
+        // Clear old dynamic elements (circles, walls)
+        Array.from(gameArea.children).forEach(child => {
+            if (child.id !== 'player') child.remove();
         });
 
-        display.innerText = "Connecting...";
-        server = await device.gatt.connect();
-        service = await server.getPrimaryService(serviceUUID);
-        characteristic = await service.getCharacteristic(charUUID);
+        if (this.activeGame === 'COIN') {
+            gameArea.style.borderRadius = "50%"; // Circle for coin game
+            this.spawnCoin();
+        } else if (this.activeGame === 'MAZE') {
+            gameArea.style.borderRadius = "10px"; // Rectangle for maze
+            MazeManager.generate(difficulty);
+        }
 
-        await characteristic.startNotifications();
-        characteristic.addEventListener('characteristicvaluechanged', handleData);
+        // Start Loop
+        if (this.gameLoopId) cancelAnimationFrame(this.gameLoopId);
+        this.gameLoop();
 
-        display.innerText = "Connected! Tilt to move.";
-        connectBtn.style.display = 'none';
+        // Start Timer
+        if (this.timerId) clearInterval(this.timerId);
+        this.timerId = setInterval(() => {
+            this.timeLeft--;
+            this.updateHUD();
+            if (this.timeLeft <= 0) this.endGame();
+        }, 1000);
+    },
 
-        // Start the Game Loop
-        requestAnimationFrame(gameLoop);
+    endGame() {
+        this.isPlaying = false;
+        clearInterval(this.timerId);
+        cancelAnimationFrame(this.gameLoopId);
 
-    } catch (error) {
-        console.error(error);
-        alert("Connection Failed: " + error);
+        // Save Stats
+        if (this.score > 0) {
+            ProfileManager.addSession({
+                game: this.activeGame,
+                diff: this.difficulty,
+                score: this.score,
+                time: 60 - this.timeLeft, // Time played
+                coins: this.activeGame === 'COIN' ? this.score : 0,
+                mazes: this.activeGame === 'MAZE' ? Math.floor(this.score / 100) : 0
+            });
+        }
+
+        // If called from Menu button, we just stop. If time ran out, maybe show results?
+        // For now, simple return to menu logic handled by user click.
+        // If this was automatic (timer), go to menu.
+        if (this.timeLeft <= 0) {
+            alert(`Session Complete! Score: ${this.score}`);
+            this.showMenu();
+        }
+    },
+
+    updateHUD() {
+        this.gameScoreElem.innerText = this.score;
+        this.gameTimerElem.innerText = this.timeLeft + 's';
+    },
+
+    spawnCoin() {
+        this.coinElem = document.createElement('div');
+        this.coinElem.id = 'coin';
+        // Re-apply style manually since we removed it
+        this.coinElem.className = 'absolute w-5 h-5 rounded-full bg-orange-400 shadow-md animate-pulse';
+        // Note: Tailwind/CSS classes might be lost if we don't apply them, 
+        // but 'coin' id has styles in CSS.
+
+        const newX = Math.random() * (GAME_SIZE - COIN_SIZE);
+        const newY = Math.random() * (GAME_SIZE - COIN_SIZE);
+        this.coinElem.style.left = newX + 'px';
+        this.coinElem.style.top = newY + 'px';
+        document.getElementById('game-area').appendChild(this.coinElem);
+    },
+
+    // BLUETOOTH
+    async connectBluetooth() {
+        try {
+            this.device = await navigator.bluetooth.requestDevice({
+                filters: [{ name: 'BalanceBoard' }],
+                optionalServices: [SERVICE_UUID]
+            });
+
+            document.getElementById('device-status').innerText = "Connecting...";
+            this.server = await this.device.gatt.connect();
+            const service = await this.server.getPrimaryService(SERVICE_UUID);
+            this.characteristic = await service.getCharacteristic(CHAR_UUID);
+
+            await this.characteristic.startNotifications();
+            this.characteristic.addEventListener('characteristicvaluechanged', (e) => this.handleData(e));
+
+            this.isConnected = true;
+            document.getElementById('device-status').innerText = "Connected";
+            document.getElementById('device-status').className = "text-center mb-2 text-teal-600 font-bold";
+            document.getElementById('connectBtn').classList.add('hidden'); // Hide connect button
+
+        } catch (error) {
+            console.error(error);
+            alert("Connection Failed");
+        }
+    },
+
+    handleData(event) {
+        const value = event.target.value;
+        const pitchInt = value.getInt16(0, true);
+        const rollInt = value.getInt16(2, true);
+        this.inputPitch = (pitchInt / 100.0);
+        this.inputRoll = (rollInt / 100.0);
+    },
+
+    gameLoop() {
+        if (!this.isPlaying) return;
+
+        // Difficulty Multiplier
+        let speed = 1.0;
+        if (this.difficulty === 'MEDIUM') speed = 1.5;
+        if (this.difficulty === 'HARD') speed = 2.0;
+
+        // Update Physics
+        this.playerX += this.inputRoll * speed;
+        this.playerY += this.inputPitch * speed;
+
+        // Boundary Checks
+        if (this.playerX < 0) this.playerX = 0;
+        if (this.playerX > GAME_SIZE - PLAYER_SIZE) this.playerX = GAME_SIZE - PLAYER_SIZE;
+        if (this.playerY < 0) this.playerY = 0;
+        if (this.playerY > GAME_SIZE - PLAYER_SIZE) this.playerY = GAME_SIZE - PLAYER_SIZE;
+
+        // Render Player
+        this.playerElem.style.left = this.playerX + 'px';
+        this.playerElem.style.top = this.playerY + 'px';
+
+        // Collision Logic
+        if (this.activeGame === 'COIN') {
+            this.checkCoinCollision();
+        } else if (this.activeGame === 'MAZE') {
+            MazeManager.checkCollision(this.playerX, this.playerY);
+        }
+
+        this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
+    },
+
+    checkCoinCollision() {
+        if (!this.coinElem) return;
+        const pCenterX = this.playerX + (PLAYER_SIZE / 2);
+        const pCenterY = this.playerY + (PLAYER_SIZE / 2);
+
+        const coinX = parseFloat(this.coinElem.style.left);
+        const coinY = parseFloat(this.coinElem.style.top);
+        const cCenterX = coinX + (COIN_SIZE / 2);
+        const cCenterY = coinY + (COIN_SIZE / 2);
+
+        const dist = Math.sqrt(Math.pow(pCenterX - cCenterX, 2) + Math.pow(pCenterY - cCenterY, 2));
+
+        if (dist < (PLAYER_SIZE / 2 + COIN_SIZE / 2)) {
+            // Collect
+            this.score += 10;
+            this.updateHUD();
+            this.coinElem.remove();
+            this.spawnCoin();
+        }
     }
-});
+};
 
-// --- DATA HANDLER ---
-function handleData(event) {
-    const value = event.target.value;
-    const pitchInt = value.getInt16(0, true);
-    const rollInt  = value.getInt16(2, true);
+// --- MAZE MANAGER ---
+const MazeManager = {
+    walls: [],
 
-    // 1. Process Raw Data
-    // FIX: Removed negative sign so "Forward" moves "Up" (Negative Y in CSS)
-    // Remember: In CSS, Y=0 is top, Y=350 is bottom.
-    // If tilting forward gives negative pitch, we need negative Y to go up.
-    inputPitch = (pitchInt / 100.0);
-    inputRoll  = (rollInt / 100.0);
+    generate(difficulty) {
+        const area = document.getElementById('game-area');
+        this.walls = [];
 
-    // Update Debug Text
-    display.innerText = `Pitch: ${inputPitch.toFixed(1)}° | Roll: ${inputRoll.toFixed(1)}°`;
-}
+        let wallCount = 5;
+        if (difficulty === 'MEDIUM') wallCount = 8;
+        if (difficulty === 'HARD') wallCount = 12;
 
-// --- GAME LOOP ---
-function gameLoop() {
-    // 1. Update Position
-    playerX += inputRoll * SPEED_FACTOR;
-    playerY += inputPitch * SPEED_FACTOR; // CSS: +Y is Down, -Y is Up
+        // Simple Random Walls for prototype
+        // In real game, use a maze algorithm or static designs
+        for (let i = 0; i < wallCount; i++) {
+            const w = document.createElement('div');
+            w.className = 'maze-wall absolute bg-slate-400 rounded';
 
-    // 2. Wall Collisions
-    if (playerX < 0) playerX = 0;
-    if (playerX > GAME_SIZE - PLAYER_SIZE) playerX = GAME_SIZE - PLAYER_SIZE;
-    if (playerY < 0) playerY = 0;
-    if (playerY > GAME_SIZE - PLAYER_SIZE) playerY = GAME_SIZE - PLAYER_SIZE;
+            const isHoriz = Math.random() > 0.5;
+            const wW = isHoriz ? 100 : 20;
+            const wH = isHoriz ? 20 : 100;
+            const wX = Math.random() * (GAME_SIZE - wW);
+            const wY = Math.random() * (GAME_SIZE - wH);
 
-    // 3. Update Visuals
-    playerDiv.style.left = playerX + 'px';
-    playerDiv.style.top = playerY + 'px';
+            w.style.width = wW + 'px';
+            w.style.height = wH + 'px';
+            w.style.left = wX + 'px';
+            w.style.top = wY + 'px';
 
-    // 4. Check Coin
-    checkCoinCollision();
+            area.appendChild(w);
+            this.walls.push({ x: wX, y: wY, w: wW, h: wH });
+        }
 
-    // 5. Repeat
-    requestAnimationFrame(gameLoop);
-}
+        // Add Goal
+        const goal = document.createElement('div');
+        goal.className = 'maze-goal absolute w-8 h-8 bg-red-400 rounded-full animate-pulse';
+        goal.style.right = '20px';
+        goal.style.bottom = '20px';
+        goal.id = 'maze-goal';
+        area.appendChild(goal);
+    },
 
-function checkCoinCollision() {
-    let pCenterX = playerX + (PLAYER_SIZE / 2);
-    let pCenterY = playerY + (PLAYER_SIZE / 2);
+    checkCollision(pX, pY) {
+        // Check Walls
+        // Simple AABB
+        for (let w of this.walls) {
+            if (pX < w.x + w.w &&
+                pX + PLAYER_SIZE > w.x &&
+                pY < w.y + w.h &&
+                pY + PLAYER_SIZE > w.y) {
 
-    let coinX = parseFloat(coinDiv.style.left || 50);
-    let coinY = parseFloat(coinDiv.style.top || 50);
-    let cCenterX = coinX + (COIN_SIZE / 2);
-    let cCenterY = coinY + (COIN_SIZE / 2);
+                // Hit Wall - Bounce / Penalty
+                // For 'Zen' mode, maybe just slow down or stop? 
+                // Let's bounce back a bit
+                app.playerX -= (app.inputRoll * 5);
+                app.playerY -= (app.inputPitch * 5);
+            }
+        }
 
-    let distance = Math.sqrt(
-        Math.pow(pCenterX - cCenterX, 2) +
-        Math.pow(pCenterY - cCenterY, 2)
-    );
+        // Check Goal
+        const goal = document.getElementById('maze-goal');
+        if (goal) {
+            const gX = parseFloat(goal.style.left || (GAME_SIZE - 40)); // rough pos
+            const gY = parseFloat(goal.style.top || (GAME_SIZE - 40));
 
-    if (distance < (PLAYER_SIZE/2 + COIN_SIZE/2)) {
-        score++;
-        scoreDiv.innerText = "Score: " + score;
-        moveCoin();
+            // Just check distance to bottom right corner area roughly
+            if (pX > GAME_SIZE - 60 && pY > GAME_SIZE - 60) {
+                // Win Level
+                app.score += 100;
+                app.timeLeft += 20; // Bonus time
+                app.updateHUD();
+
+                // Regenerate logic could go here
+                // For now, just respawn goal
+                alert("Maze Cleared! +100pts");
+                app.selectGame('MAZE'); // quick reset
+                app.startGame(app.difficulty);
+            }
+        }
     }
 }
 
-function moveCoin() {
-    let newX = Math.random() * (GAME_SIZE - COIN_SIZE);
-    let newY = Math.random() * (GAME_SIZE - COIN_SIZE);
-    coinDiv.style.left = newX + 'px';
-    coinDiv.style.top = newY + 'px';
-}
-
-moveCoin();
+// Start App
+app.init();

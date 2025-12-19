@@ -68,6 +68,7 @@
 }
 
 /* Background blob animation handles in CSS */
+/* Background blob animation handles in CSS */
 @keyframes blob {
     0% {
         transform: translate(0px, 0px) scale(1);
@@ -92,4 +93,27 @@
 
 .animation-delay-2000 {
     animation-delay: 2s;
+}
+
+/* === MAZE GAME ELEMENTS === */
+.maze-wall {
+    position: absolute;
+    background-color: #cbd5e1;
+    /* slate-300 */
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.maze-goal {
+    position: absolute;
+    background-color: #f87171;
+    /* red-400 */
+    border-radius: 50%;
+    opacity: 0.8;
+    box-shadow: 0 0 10px #f87171;
+}
+
+/* Utils */
+.hidden {
+    display: none !important;
 }
