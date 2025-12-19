@@ -65,7 +65,7 @@ const ProfileManager = {
         this.data.sessions.slice(0, 5).forEach((s, i) => {
             const div = document.createElement('div');
             div.className = "flex justify-between border-b border-slate-100 pb-1";
-            div.innerHTML = `<span>${s.game} (${s.diff})</span> <span>${s.score} tčk</span>`;
+            div.innerHTML = `<span>${s.game} (${s.diff})</span> <span>${s.score} točk</span>`;
             list.appendChild(div);
         });
     }
@@ -119,6 +119,7 @@ const app = {
         const appContainer = document.getElementById('main-app');
         const minWidth = 380;
         const width = window.innerWidth;
+        const height = window.innerHeight;
 
         if (width < minWidth) {
             const scale = width / minWidth;
@@ -126,6 +127,7 @@ const app = {
         } else {
             appContainer.style.transform = `scale(1)`;
         }
+
     },
 
     switchView(viewName) {
@@ -152,7 +154,7 @@ const app = {
             return;
         }
         this.activeGame = gameMode;
-        document.getElementById('diff-game-name').innerText = gameMode === 'COIN' ? "Lov za Kovanci" : "Zen Labirint";
+        document.getElementById('diff-game-name').innerText = gameMode === 'COIN' ? "Lov za kovanci" : "Zen labirint";
         this.switchView('difficulty');
     },
 
