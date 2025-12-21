@@ -54,11 +54,18 @@ const ProfileManager = {
     },
 
     updateUI() {
-        // Stats
-        document.getElementById('menu-total-score').innerText = this.data.totalScore;
-        document.getElementById('profile-total-score').innerText = this.data.totalScore;
-        document.getElementById('profile-time').innerText = Math.floor(this.data.totalTimeSec / 60) + " min";
-        document.getElementById('profile-games').innerText = this.data.gamesPlayed;
+        // Stats - Safety checks added
+        const elMenuScore = document.getElementById('menu-total-score');
+        if (elMenuScore) elMenuScore.innerText = this.data.totalScore;
+
+        const elProfileScore = document.getElementById('profile-total-score');
+        if (elProfileScore) elProfileScore.innerText = this.data.totalScore;
+
+        const elProfileTime = document.getElementById('profile-time');
+        if (elProfileTime) elProfileTime.innerText = Math.floor(this.data.totalTimeSec / 60) + " min";
+
+        const elProfileGames = document.getElementById('profile-games');
+        if (elProfileGames) elProfileGames.innerText = this.data.gamesPlayed;
 
         // Graph (Last 5)
         const recent = this.data.sessions.slice(0, 5).reverse(); // Oldest to newest for graph L->R
