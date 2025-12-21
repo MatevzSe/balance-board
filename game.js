@@ -275,7 +275,8 @@ const app = {
             // Mode Specific Seconds Logic
             if (this.activeGame === 'COIN') {
                 this.coinIdleTime++;
-                if (this.coinIdleTime > 4) { // Move every ~5s if idle
+                // FIX: Increase to 10s to prevent rapid jumping perception, only move if really stuck
+                if (this.coinIdleTime > 10) {
                     if (this.coinElem) this.coinElem.remove();
                     this.spawnCoin();
                     this.coinIdleTime = 0;
@@ -371,7 +372,7 @@ const app = {
         if (!el) {
             el = document.createElement('div');
             el.id = 'hold-target';
-            el.className = 'absolute rounded-full border-4 border-teal-300 transition-all duration-300';
+            el.className = 'absolute rounded-full border-4 transition-all duration-300 flex items-center justify-center';
             document.getElementById('game-area').appendChild(el);
         }
 
@@ -381,13 +382,25 @@ const app = {
         el.style.left = (this.holdTarget.x - this.holdTarget.r) + 'px';
         el.style.top = (this.holdTarget.y - this.holdTarget.r) + 'px';
 
-        // Visual feedback for holding
+        // Color Progression Logic
+        // 0-3s: Red/Orange, 3-6s: Yellow, 6-9s: Yellow-Green, 9-10s: Green
+        let colorClass = "border-red-500 bg-red-500/10";
         if (this.isHolding) {
-            el.style.borderColor = "#4ade80"; // Green
-            el.style.backgroundColor = "rgba(74, 222, 128, 0.2)";
+            if (this.holdTimer > 9.0) colorClass = "border-emerald-500 bg-emerald-500/40 animate-pulse";
+            else if (this.holdTimer > 6.0) colorClass = "border-lime-500 bg-lime-500/30";
+            else if (this.holdTimer > 3.0) colorClass = "border-yellow-500 bg-yellow-500/20";
+            else colorClass = "border-orange-500 bg-orange-500/10";
         } else {
-            el.style.borderColor = "#f97316"; // Orange
-            el.style.backgroundColor = "transparent";
+            colorClass = "border-slate-300 bg-transparent";
+        }
+
+        el.className = `absolute rounded-full border-4 transition-all duration-300 flex items-center justify-center ${colorClass}`;
+
+        // Optional: Show timer inside?
+        if (this.isHolding) {
+            el.innerHTML = `<span class="text-white font-bold text-lg drop-shadow-md">${Math.floor(this.holdTimer)}</span>`;
+        } else {
+            el.innerHTML = "";
         }
     },
 
@@ -421,16 +434,16 @@ const app = {
         this.holdTarget.r = Math.max(20, this.holdTarget.r - 10);
 
         // Higher levels: Offset center
-        if (this.level > 2) {
-            const offset = 50;
+        if (this.level > 1) { // Changed to > 1 so it happens earlier
+            const offset = 60;
             this.holdTarget.x = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
             this.holdTarget.y = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
 
-            this.holdTarget.x = Math.max(60, Math.min(GAME_SIZE - 60, this.holdTarget.x));
-            this.holdTarget.y = Math.max(60, Math.min(GAME_SIZE - 60, this.holdTarget.y));
+            this.holdTarget.x = Math.max(80, Math.min(GAME_SIZE - 80, this.holdTarget.x));
+            this.holdTarget.y = Math.max(80, Math.min(GAME_SIZE - 80, this.holdTarget.y));
         }
 
-        alert(`Stopnja ${this.level}!`);
+        this.showNotification(`Stopnja ${this.level}!`);
         this.updateHUD();
     },
 
@@ -440,10 +453,26 @@ const app = {
 
         this.coinElem = document.createElement('div');
         this.coinElem.id = 'coin';
-        this.coinElem.className = 'absolute w-5 h-5 rounded-full bg-yellow-400 shadow-md animate-bounce';
+        this.coinElem.className = 'absolute w-6 h-6 rounded-full bg-yellow-400 shadow-lg border-2 border-yellow-200 animate-bounce flex items-center justify-center';
+        this.coinElem.innerHTML = '<span class="text-[10px]">🪙</span>';
 
-        const newX = Math.random() * (GAME_SIZE - COIN_SIZE);
-        const newY = Math.random() * (GAME_SIZE - COIN_SIZE);
+        // Safe Spawn Logic: Don't spawn on player
+        let safe = false;
+        let newX, newY;
+        let attempts = 0;
+
+        const pCx = this.playerX + PLAYER_SIZE / 2;
+        const pCy = this.playerY + PLAYER_SIZE / 2;
+
+        while (!safe && attempts < 10) {
+            newX = Math.random() * (GAME_SIZE - COIN_SIZE * 2) + COIN_SIZE;
+            newY = Math.random() * (GAME_SIZE - COIN_SIZE * 2) + COIN_SIZE;
+
+            const dist = Math.sqrt(Math.pow(pCx - (newX + COIN_SIZE / 2), 2) + Math.pow(pCy - (newY + COIN_SIZE / 2), 2));
+            if (dist > 100) safe = true; // At least 100px away
+            attempts++;
+        }
+
         this.coinElem.style.left = newX + 'px';
         this.coinElem.style.top = newY + 'px';
         document.getElementById('game-area').appendChild(this.coinElem);
@@ -548,6 +577,9 @@ const app = {
         if (this.difficulty === 'HARD') speed = 1.25; // Faster (was 2.0)
 
         // Player Move Logic
+        let prevX = this.playerX;
+        let prevY = this.playerY;
+
         if (this.activeGame === 'SLALOM') {
             // Slalom: Only X moves. Y is fixed.
             this.playerX += this.inputRoll * speed * 1.5;
@@ -572,7 +604,13 @@ const app = {
         if (this.activeGame === 'COIN') {
             this.checkCoinCollision();
         } else if (this.activeGame === 'MAZE') {
-            MazeManager.checkCollision(this.playerX, this.playerY);
+            if (MazeManager.checkCollision(this.playerX, this.playerY)) {
+                // Collision prevented: Revert position
+                this.playerX = prevX;
+                this.playerY = prevY;
+                this.playerElem.style.left = this.playerX + 'px';
+                this.playerElem.style.top = this.playerY + 'px';
+            }
         } else if (this.activeGame === 'HOLD') {
             this.checkHoldLogic(1 / 60); // approx dt
         } else if (this.activeGame === 'SLALOM') {
@@ -747,84 +785,131 @@ const SlalomManager = {
 };
 
 // --- MAZE MANAGER ---
+// --- MAZE MANAGER ---
 const MazeManager = {
     walls: [],
+    cellSize: 50,
+
+    // Simple maps for prototype (1 = wall, 0 = empty)
+    // 7x7 grid for GAME_SIZE 350
+    maps: [
+        [ // Level 1 (Easy)
+            [1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 1, 0, 1],
+            [1, 0, 1, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1]
+        ],
+        [ // Level 2 (Med)
+            [1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 1, 0, 0, 1],
+            [1, 0, 0, 1, 0, 0, 1],
+            [1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1]
+        ],
+        [ // Level 3 (Hard)
+            [1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 0, 0, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 1, 0, 1],
+            [1, 1, 1, 0, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1]
+        ]
+    ],
 
     generate(difficulty) {
         const area = document.getElementById('game-area');
+        // Clear previous
+        Array.from(document.getElementsByClassName('maze-wall')).forEach(el => el.remove());
+        const existingGoal = document.getElementById('maze-goal');
+        if (existingGoal) existingGoal.remove();
+
         this.walls = [];
 
-        let wallCount = 5;
-        if (difficulty === 'MEDIUM') wallCount = 8;
-        if (difficulty === 'HARD') wallCount = 12;
+        let mapIndex = 0;
+        if (difficulty === 'MEDIUM') mapIndex = 1;
+        if (difficulty === 'HARD') mapIndex = 2;
 
-        // Simple Random Walls for prototype
-        // In real game, use a maze algorithm or static designs
-        for (let i = 0; i < wallCount; i++) {
-            const w = document.createElement('div');
-            w.className = 'maze-wall absolute bg-slate-400 rounded';
+        // Randomly flip map for variety? Or just stick to static for robustness
+        const map = this.maps[mapIndex];
 
-            const isHoriz = Math.random() > 0.5;
-            const wW = isHoriz ? 100 : 20;
-            const wH = isHoriz ? 20 : 100;
-            const wX = Math.random() * (GAME_SIZE - wW);
-            const wY = Math.random() * (GAME_SIZE - wH);
-
-            w.style.width = wW + 'px';
-            w.style.height = wH + 'px';
-            w.style.left = wX + 'px';
-            w.style.top = wY + 'px';
-
-            area.appendChild(w);
-            this.walls.push({ x: wX, y: wY, w: wW, h: wH });
+        for (let r = 0; r < 7; r++) {
+            for (let c = 0; c < 7; c++) {
+                if (map[r][c] === 1) {
+                    this.createWall(c * this.cellSize, r * this.cellSize);
+                }
+            }
         }
 
         // Add Goal
         const goal = document.createElement('div');
-        goal.className = 'maze-goal absolute w-8 h-8 bg-red-400 rounded-full animate-pulse';
-        goal.style.right = '20px';
-        goal.style.bottom = '20px';
+        goal.className = 'maze-goal absolute w-8 h-8 rounded-full animate-pulse flex items-center justify-center';
+        goal.style.backgroundColor = '#ec4899'; // Pink
+        goal.innerHTML = '🏁';
+        // Place goal at bottom right (6,5) roughly
+        goal.style.right = '25px';
+        goal.style.bottom = '25px';
         goal.id = 'maze-goal';
         area.appendChild(goal);
+
+        // Place player at top left (1,1) safe spot
+        app.playerX = 60;
+        app.playerY = 60;
+    },
+
+    createWall(x, y) {
+        const area = document.getElementById('game-area');
+        const w = document.createElement('div');
+        w.className = 'maze-wall absolute bg-slate-500 rounded-sm shadow-sm';
+        w.style.width = this.cellSize + 'px';
+        w.style.height = this.cellSize + 'px';
+        w.style.left = x + 'px';
+        w.style.top = y + 'px';
+        area.appendChild(w);
+
+        this.walls.push({ x: x, y: y, w: this.cellSize, h: this.cellSize });
     },
 
     checkCollision(pX, pY) {
-        // Check Walls
-        // Simple AABB
+        // Simple AABB vs Walls
         for (let w of this.walls) {
             if (pX < w.x + w.w &&
                 pX + PLAYER_SIZE > w.x &&
                 pY < w.y + w.h &&
                 pY + PLAYER_SIZE > w.y) {
 
-                // Hit Wall - Bounce / Penalty
-                // For 'Zen' mode, maybe just slow down or stop? 
-                // Let's bounce back a bit
-                app.playerX -= (app.inputRoll * 5);
-                app.playerY -= (app.inputPitch * 5);
+                // Collision Detected!
+                return true;
             }
         }
 
         // Check Goal
         const goal = document.getElementById('maze-goal');
         if (goal) {
-            const gX = parseFloat(goal.style.left || (GAME_SIZE - 40));
-            const gY = parseFloat(goal.style.top || (GAME_SIZE - 40));
+            // Check distance to goal center
+            // Goal is roughly at (325, 325)
+            // Player center
+            const pCx = pX + PLAYER_SIZE / 2;
+            const pCy = pY + PLAYER_SIZE / 2;
 
-            // Just check distance to bottom right corner area roughly
-            if (pX > GAME_SIZE - 60 && pY > GAME_SIZE - 60) {
-                // Win Level
+            // Simple hack: if we are in the bottom right corner cell
+            if (pCx > 300 && pCy > 300) {
                 app.score += 100 + (app.timeLeft * 10);
-                // NO Bonus time! strict limit.
-                app.updateHUD();
-
                 app.showNotification("Labirint rešen! +100 točk");
-                app.selectGame('MAZE'); // quick reset
+                // Reset / Next Level
+                app.selectGame('MAZE');
                 app.startGame(app.difficulty);
             }
         }
+
+        return false;
     }
-}
+};
 
 // Start App
 app.init();
