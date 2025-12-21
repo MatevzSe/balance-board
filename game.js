@@ -192,6 +192,14 @@ const app = {
         }
         this.activeGame = gameMode;
 
+        // TEST Mode: Skip difficulty select
+        if (gameMode === 'TEST') {
+            this.activeGame = 'TEST';
+            this.startGame('MEDIUM'); // Default to medium for test
+            document.getElementById('diff-game-name').innerText = "Testno okolje";
+            return;
+        }
+
         let title = "Igra";
         if (gameMode === 'COIN') title = "Lov za kovanci";
         if (gameMode === 'MAZE') title = "Zen labirint";
@@ -244,6 +252,14 @@ const app = {
             // Player is fixed at bottom
             this.playerY = GAME_SIZE - 80;
             SlalomManager.start(difficulty);
+        } else if (this.activeGame === 'TEST') {
+            // Test Mode: Just an empty square. No extra elements.
+            // Maybe add a center marker for reference?
+            const center = document.createElement('div');
+            center.className = 'absolute w-2 h-2 bg-slate-300 rounded-full';
+            center.style.left = (GAME_SIZE / 2 - 1) + 'px';
+            center.style.top = (GAME_SIZE / 2 - 1) + 'px';
+            gameArea.appendChild(center);
         }
 
         // Start Loop
@@ -269,6 +285,10 @@ const app = {
             if (this.timeLeft <= 0) {
                 if (this.activeGame === 'SLALOM') {
                     this.levelUpSlalom();
+                } else if (this.activeGame === 'TEST') {
+                    // In Test mode, just loop infinite time or reset?
+                    // Let's just reset timer so it doesn't end.
+                    this.timeLeft = 120;
                 } else {
                     this.endGameLogic(true); // Time's up
                 }
@@ -310,6 +330,8 @@ const app = {
             } else {
                 message = `Cilj! Prevoženih vratc: ${Math.floor(this.score / 10)}.`;
             }
+        } else if (this.activeGame === 'TEST') {
+            message = "Konec testiranja.";
         }
 
         // Save Stats
@@ -521,8 +543,9 @@ const app = {
 
         // Difficulty Multiplier check
         let speed = 1.0;
-        if (this.difficulty === 'MEDIUM') speed = 1.5;
-        if (this.difficulty === 'HARD') speed = 2.0;
+        if (this.difficulty === 'EASY') speed = 0.5; // Slower (was ~1.0)
+        if (this.difficulty === 'MEDIUM') speed = 1.0; // Normal (was 1.5)
+        if (this.difficulty === 'HARD') speed = 1.25; // Faster (was 2.0)
 
         // Player Move Logic
         if (this.activeGame === 'SLALOM') {
@@ -602,8 +625,12 @@ const SlalomManager = {
     },
 
     spawnGate(yPos) {
-        // Gap width
-        const gap = 80;
+        // Gap width (variable by level)
+        // Start wide (120px) and narrow down by 5px per level, min 60px
+        const baseGap = 120;
+        const currentGap = Math.max(60, baseGap - (app.level * 5));
+
+        const gap = currentGap;
         // Gap X center random (avoid edges)
         const minX = 40;
         const maxX = GAME_SIZE - 40;
