@@ -275,8 +275,10 @@ const app = {
             // Mode Specific Seconds Logic
             if (this.activeGame === 'COIN') {
                 this.coinIdleTime++;
-                // FIX: Increase to 10s to prevent rapid jumping perception, only move if really stuck
-                if (this.coinIdleTime > 10) {
+                // Dynamic Speed: Starts at 10s, decreases by 1s per level, min 2s
+                const idleLimit = Math.max(2, 11 - this.level);
+
+                if (this.coinIdleTime > idleLimit) {
                     if (this.coinElem) this.coinElem.remove();
                     this.spawnCoin();
                     this.coinIdleTime = 0;
@@ -638,9 +640,11 @@ const app = {
             this.updateHUD();
             this.coinElem.remove();
 
-            this.coinsCollected = 0;
-            this.level++;
-            this.showNotification(`Stopnja ${this.level}! Kovanci so hitrejši.`);
+            if (this.coinsCollected >= 10) {
+                this.coinsCollected = 0;
+                this.level++;
+                this.showNotification(`Stopnja ${this.level}! Kovanci so hitrejši.`);
+            }
             this.spawnCoin();
         }
     }
@@ -663,8 +667,8 @@ const SlalomManager = {
 
     spawnGate(yPos) {
         // Gap width (variable by level)
-        // Start wide (120px) and narrow down by 5px per level, min 60px
-        const baseGap = 120;
+        // Start wider (160px) and narrow down by 5px per level, min 60px
+        const baseGap = 160;
         const currentGap = Math.max(60, baseGap - (app.level * 5));
 
         const gap = currentGap;
@@ -802,8 +806,8 @@ const MazeManager = {
             [1, 0, 1, 1, 1, 0, 1],
             [1, 0, 0, 0, 1, 0, 1],
             [1, 0, 1, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1]
+            [1, 0, 0, 0, 0, 0, 0], // Opened right side
+            [1, 1, 1, 1, 1, 0, 0]  // Opened goal area
         ],
         [ // Level 2 (Med)
             [1, 1, 1, 1, 1, 1, 1],
@@ -811,8 +815,8 @@ const MazeManager = {
             [1, 0, 0, 1, 0, 0, 1],
             [1, 0, 1, 1, 1, 0, 1],
             [1, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1]
+            [1, 1, 1, 0, 0, 0, 0], // Opened right side
+            [1, 1, 1, 1, 1, 0, 0]  // Opened goal area
         ],
         [ // Level 3 (Hard)
             [1, 1, 1, 1, 1, 1, 1],
@@ -820,8 +824,8 @@ const MazeManager = {
             [1, 0, 1, 0, 1, 0, 1],
             [1, 0, 0, 0, 1, 0, 1],
             [1, 1, 1, 0, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1]
+            [1, 0, 0, 0, 0, 0, 0], // Opened right side
+            [1, 1, 1, 1, 1, 0, 0]  // Opened goal area
         ]
     ],
 
