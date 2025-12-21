@@ -78,6 +78,10 @@ const app = {
     characteristic: null,
     isConnected: false,
 
+    // Battery
+    batteryLevel: -1,
+
+
     // Game State
     activeGame: null, // 'COIN', 'MAZE', 'HOLD'
     difficulty: 'MEDIUM', // 'EASY', 'MEDIUM', 'HARD'
@@ -434,6 +438,45 @@ const app = {
         const rollInt = value.getInt16(2, true);
         this.inputPitch = (pitchInt / 100.0);
         this.inputRoll = (rollInt / 100.0);
+
+        // Battery Parsing (Bytes 4-5) - only if packet is long enough
+        if (value.byteLength >= 6) {
+            const batteryInt = value.getInt16(4, true);
+            // Throttle updates or just set it
+            // Only update DOM if value changed to save resources
+            if (batteryInt !== this.batteryLevel) {
+                this.batteryLevel = batteryInt;
+                this.updateBatteryUI();
+            }
+        }
+    },
+
+    updateBatteryUI() {
+        const indicator = document.getElementById('battery-indicator');
+        const levelText = document.getElementById('battery-level');
+        const fill = document.getElementById('battery-fill');
+
+        if (!indicator || !levelText || !fill) return;
+
+        // Show indicator if we have valid data
+        if (this.batteryLevel >= 0) {
+            indicator.classList.remove('opacity-0');
+        } else {
+            indicator.classList.add('opacity-0');
+            return;
+        }
+
+        levelText.innerText = this.batteryLevel + '%';
+        fill.style.width = this.batteryLevel + '%';
+
+        // Color Logic
+        if (this.batteryLevel > 50) {
+            fill.className = "h-full bg-teal-500 rounded-sm transition-all duration-500";
+        } else if (this.batteryLevel > 20) {
+            fill.className = "h-full bg-yellow-500 rounded-sm transition-all duration-500";
+        } else {
+            fill.className = "h-full bg-red-500 rounded-sm animate-pulse transition-all duration-500";
+        }
     },
 
     gameLoop() {
