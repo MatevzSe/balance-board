@@ -584,7 +584,6 @@ const app = {
 
         this.spawnCoin();
     }
-}
 };
 
 // --- SLALOM MANAGER ---
