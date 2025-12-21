@@ -158,9 +158,36 @@ const app = {
         this.switchView('menu');
     },
 
+    // Fix: Add explicit endGame alias for the HTML button
+    endGame() {
+        this.showMenu();
+    },
+
+    // --- NOTIFICATION SYSTEM ---
+    showNotification(message, duration = 3000) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = "bg-slate-800 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-bounce-in opacity-0 translate-y-4 transition-all duration-300 transform";
+        toast.innerHTML = `<span class="text-xl">🔔</span> <span class="font-medium">${message}</span>`;
+
+        container.appendChild(toast);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            toast.classList.remove('opacity-0', 'translate-y-4');
+        });
+
+        setTimeout(() => {
+            toast.classList.add('opacity-0', '-translate-y-4');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    },
+
     selectGame(gameMode) {
         if (!this.isConnected) {
-            alert("Prosim, najprej poveži desko!");
+            this.showNotification("Prosim, najprej poveži desko!");
             return;
         }
         this.activeGame = gameMode;
@@ -204,19 +231,16 @@ const app = {
             if (child.id !== 'player') child.remove();
         });
 
-        gameArea.style.borderRadius = "10px"; // Default rect
+        // FIX: Always use square/rounded-rect for consistency so user doesn't fall off
+        gameArea.style.borderRadius = "10px";
 
         if (this.activeGame === 'COIN') {
-            gameArea.style.borderRadius = "50%"; // Circle for coin game
             this.spawnCoin();
         } else if (this.activeGame === 'MAZE') {
-            gameArea.style.borderRadius = "10px";
             MazeManager.generate(difficulty);
         } else if (this.activeGame === 'HOLD') {
-            gameArea.style.borderRadius = "50%";
             this.updateHoldTargetVisual();
         } else if (this.activeGame === 'SLALOM') {
-            gameArea.style.borderRadius = "10px";
             // Player is fixed at bottom
             this.playerY = GAME_SIZE - 80;
             SlalomManager.start(difficulty);
@@ -255,7 +279,7 @@ const app = {
     levelUpSlalom() {
         this.level++;
         this.timeLeft = 120; // Reset 2 mins
-        alert(`Čas je potekel! Stopnja ${this.level} - Hitreje!`);
+        this.showNotification(`Čas je potekel! Stopnja ${this.level} - Hitreje!`);
         this.updateHUD();
     },
 
@@ -300,7 +324,7 @@ const app = {
             });
         }
 
-        alert(message);
+        this.showNotification(message, 5000);
         this.showMenu();
     },
 
@@ -436,13 +460,26 @@ const app = {
         const value = event.target.value;
         const pitchInt = value.getInt16(0, true);
         const rollInt = value.getInt16(2, true);
+
         this.inputPitch = (pitchInt / 100.0);
         this.inputRoll = (rollInt / 100.0);
+
+        // Debug View Update
+        const dbgPitch = document.getElementById('dbg-pitch');
+        const dbgRoll = document.getElementById('dbg-roll');
+        if (dbgPitch) dbgPitch.innerText = pitchInt;
+        if (dbgRoll) dbgRoll.innerText = rollInt;
 
         // Battery Parsing (Bytes 4-5) - only if packet is long enough
         if (value.byteLength >= 6) {
             const batteryInt = value.getInt16(4, true);
-            // Throttle updates or just set it
+
+            // Debug Battery
+            const dbgBat = document.getElementById('dbg-bat');
+            const dbgBatPerc = document.getElementById('dbg-bat-perc');
+            if (dbgBat) dbgBat.innerText = batteryInt;
+            if (dbgBatPerc) dbgBatPerc.innerText = batteryInt + '%';
+
             // Only update DOM if value changed to save resources
             if (batteryInt !== this.batteryLevel) {
                 this.batteryLevel = batteryInt;
@@ -540,15 +577,14 @@ const app = {
             this.updateHUD();
             this.coinElem.remove();
 
-            if (this.coinsCollected >= 20) {
-                this.coinsCollected = 0;
-                this.level++;
-                alert(`Stopnja ${this.level}! Kovanci so hitrejši.`);
-            }
-
-            this.spawnCoin();
+            this.coinsCollected = 0;
+            this.level++;
+            this.showNotification(`Stopnja ${this.level}! Kovanci so hitrejši.`);
         }
+
+        this.spawnCoin();
     }
+}
 };
 
 // --- SLALOM MANAGER ---
@@ -756,7 +792,7 @@ const MazeManager = {
                 // NO Bonus time! strict limit.
                 app.updateHUD();
 
-                alert("Labirint rešen! +100 točk");
+                app.showNotification("Labirint rešen! +100 točk");
                 app.selectGame('MAZE'); // quick reset
                 app.startGame(app.difficulty);
             }
