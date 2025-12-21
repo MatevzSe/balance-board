@@ -203,38 +203,51 @@
 
         <!-- ==================== VIEW: PROFILE (PROFIL) ==================== -->
         <div id="view-profile"
-            class="hidden w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-8 flex flex-col gap-6">
-            <header class="text-center">
-                <h2 class="text-2xl font-semibold text-slate-700">Tvoja pot</h2>
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Skupni čas ravnotežja</div>
-                <div class="text-4xl font-light text-teal-600 mt-1" id="profile-time">0m</div>
+            class="hidden w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-6 flex flex-col gap-6 max-h-[80vh] overflow-y-auto">
+
+            <!-- Header: Total Score -->
+            <header class="text-center py-4 bg-teal-50 rounded-2xl border border-teal-100">
+                <div class="text-xs font-bold text-teal-400 uppercase tracking-widest mb-1">Skupni rezultat</div>
+                <div class="text-5xl font-bold text-teal-700 tracking-tighter" id="profile-total-score">0</div>
+                <div class="text-xs text-teal-600 mt-1">Vse zbrane točke</div>
             </header>
 
+            <!-- Metrics Grid -->
             <div class="grid grid-cols-2 gap-4">
-                <div class="bg-indigo-50 p-4 rounded-2xl text-center">
-                    <div class="text-2xl">💎</div>
-                    <div class="font-bold text-slate-700 text-lg mt-1" id="profile-coins">0</div>
-                    <div class="text-xs text-slate-500">Skupaj kovanci</div>
+                <div class="bg-indigo-50 p-4 rounded-2xl flex flex-col items-center justify-center">
+                    <div class="text-2xl mb-1">⏱️</div>
+                    <div class="font-bold text-slate-700 text-lg" id="profile-time">0m</div>
+                    <div class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Čas vaje</div>
                 </div>
-                <div class="bg-orange-50 p-4 rounded-2xl text-center">
-                    <div class="text-2xl">⚡</div>
-                    <div class="font-bold text-slate-700 text-lg mt-1" id="profile-agility">0.0</div>
-                    <div class="text-xs text-slate-500">Ocena agilnosti</div>
+                <div class="bg-orange-50 p-4 rounded-2xl flex flex-col items-center justify-center">
+                    <div class="text-2xl mb-1">🎮</div>
+                    <div class="font-bold text-slate-700 text-lg" id="profile-games">0</div>
+                    <div class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Igre</div>
                 </div>
             </div>
 
-            <div class="bg-slate-50 p-4 rounded-2xl">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Zgodovina napredka</div>
-                <!-- Simple text-based graph for now -->
-                <div id="history-list" class="space-y-2 text-sm text-slate-600">
-                    <!-- <div class="flex justify-between"><span>Session 1</span> <span>120 pts</span></div> -->
-                    <div class="text-center text-slate-400 italic">Ni podatkov</div>
+            <!-- Graph: Last 5 Games -->
+            <div class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Zadnjih 5 iger</div>
+                <div id="profile-graph" class="flex items-end justify-between h-24 w-full px-2 gap-2">
+                    <!-- Bars injected via JS -->
+                    <div class="w-full h-full flex items-center justify-center text-slate-300 text-xs italic">Ni dovolj
+                        podatkov</div>
+                </div>
+            </div>
+
+            <!-- History List -->
+            <div class="flex-1">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Zgodovina</div>
+                <div id="history-list" class="space-y-3">
+                    <!-- Items -->
                 </div>
             </div>
 
             <button onclick="app.showMenu()"
-                class="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-xl transition-all">Nazaj
-                na meni</button>
+                class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all shadow-lg mt-2">
+                Nazaj na meni
+            </button>
         </div>
 
     </div>

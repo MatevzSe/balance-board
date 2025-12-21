@@ -13,18 +13,23 @@ const SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
 const CHAR_UUID = "19b10001-e8f2-537e-4f6c-d104768a1214";
 
 // --- PROFILE MANAGER ---
+// --- PROFILE MANAGER ---
 const ProfileManager = {
     data: {
         totalTimeSec: 0,
-        totalCoins: 0,
-        mazesCompleted: 0,
+        totalScore: 0,
+        gamesPlayed: 0,
         sessions: []
     },
 
     load() {
         const stored = localStorage.getItem('balance_profile');
         if (stored) {
-            this.data = JSON.parse(stored);
+            const parsed = JSON.parse(stored);
+            // Migration: If totalScore is missing
+            if (parsed.totalScore === undefined) parsed.totalScore = parsed.totalCoins * 10 || 0;
+            if (parsed.gamesPlayed === undefined) parsed.gamesPlayed = parsed.sessions.length || 0;
+            this.data = parsed;
         }
     },
 
@@ -35,37 +40,73 @@ const ProfileManager = {
 
     addSession(stats) {
         this.data.totalTimeSec += stats.time || 0;
-        this.data.totalCoins += stats.coins || 0;
-        this.data.mazesCompleted += stats.mazes || 0;
+        this.data.totalScore += stats.score || 0;
+        this.data.gamesPlayed++;
 
-        // Keep last 10 sessions
-        this.data.sessions.unshift(stats);
-        if (this.data.sessions.length > 10) this.data.sessions.pop();
+        // Keep last 20 sessions (increased info)
+        this.data.sessions.unshift({
+            ...stats,
+            date: new Date().toISOString()
+        });
+        if (this.data.sessions.length > 20) this.data.sessions.pop();
 
         this.save();
     },
 
-    getAgilityScore() {
-        // Simple heuristic: Coins per minute * 10
-        if (this.data.totalTimeSec === 0) return 0;
-        const mins = this.data.totalTimeSec / 60;
-        const score = (this.data.totalCoins / mins) * 1;
-        return score.toFixed(1);
-    },
-
     updateUI() {
-        document.getElementById('menu-total-score').innerText = Math.floor(this.data.totalCoins * 10);
-        document.getElementById('profile-coins').innerText = this.data.totalCoins;
+        // Stats
+        document.getElementById('menu-total-score').innerText = this.data.totalScore;
+        document.getElementById('profile-total-score').innerText = this.data.totalScore;
         document.getElementById('profile-time').innerText = Math.floor(this.data.totalTimeSec / 60) + " min";
-        document.getElementById('profile-agility').innerText = this.getAgilityScore();
+        document.getElementById('profile-games').innerText = this.data.gamesPlayed;
 
-        // History
+        // Graph (Last 5)
+        const recent = this.data.sessions.slice(0, 5).reverse(); // Oldest to newest for graph L->R
+        const graphContainer = document.getElementById('profile-graph');
+
+        if (recent.length > 0) {
+            graphContainer.innerHTML = "";
+            const maxScore = Math.max(...recent.map(s => s.score)) || 100;
+
+            recent.forEach(s => {
+                const h = Math.max(10, (s.score / maxScore) * 100);
+                const bar = document.createElement('div');
+                bar.className = "flex-1 mx-1 bg-teal-400 rounded-t-sm hover:bg-teal-500 transition-all relative group";
+                bar.style.height = h + "%";
+                // Tooltip
+                bar.innerHTML = `<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none">${s.score}</div>`;
+                graphContainer.appendChild(bar);
+            });
+        } else {
+            graphContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-slate-300 text-xs italic">Ni podatkov</div>`;
+        }
+
+        // History List
         const list = document.getElementById('history-list');
         list.innerHTML = "";
-        this.data.sessions.slice(0, 5).forEach((s, i) => {
+
+        const icons = {
+            'Kovanci': '🪙',
+            'Labirint': '🌀',
+            'Slalom': '⛷️',
+            'Drži sredino': '🎯',
+            'Test': '🛠️' // Fallback
+        };
+
+        this.data.sessions.slice(0, 10).forEach((s) => {
+            const icon = icons[s.game] || '🎮';
+            const date = s.date ? new Date(s.date).toLocaleDateString() : 'Pred kratkim';
+
             const div = document.createElement('div');
-            div.className = "flex justify-between border-b border-slate-100 pb-1";
-            div.innerHTML = `<span>${s.game} (${s.diff})</span> <span>${s.score} točk</span>`;
+            div.className = "flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100";
+            div.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xl shadow-sm border border-slate-100">${icon}</div>
+                <div class="flex-1">
+                    <div class="font-bold text-slate-700 text-sm">${s.game}</div>
+                    <div class="text-[10px] text-slate-400 font-medium uppercase tracking-wide">${s.diff} • ${date}</div>
+                </div>
+                <div class="text-teal-600 font-bold text-lg">+${s.score}</div>
+            `;
             list.appendChild(div);
         });
     }
