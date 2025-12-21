@@ -64,24 +64,25 @@
                 <p class="text-sm text-slate-500 mt-1">Poveži telo in duha</p>
             </header>
 
-            <!-- Stats / Profile Summary -->
-            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 text-center cursor-pointer hover:bg-slate-100 transition"
-                onclick="app.showProfile()">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Tvoj napredek</div>
-                <div class="text-2xl font-bold text-slate-700 mt-1"><span id="menu-total-score">0</span> točk</div>
-                <div class="text-xs text-slate-400 mt-1">Klikni za profil</div>
-            </div>
+            <!-- Fancy Profile Button -->
+            <button onclick="app.showProfile()"
+                class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left shadow-lg">
+                <div
+                    class="w-10 h-10 rounded-full bg-slate-600 text-white flex items-center justify-center text-xl group-hover:scale-110 transition">
+                    📈</div>
+                <div>
+                    <div class="font-bold">Tvoj napredek</div>
+                    <div class="text-xs text-slate-400">
+                        <span id="menu-total-score">0</span> točk • Klikni za profil
+                    </div>
+                </div>
+            </button>
 
             <div class="space-y-3">
+                <!-- Simple Test Button -->
                 <button onclick="app.selectGame('TEST')"
-                    class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left shadow-lg mb-4">
-                    <div
-                        class="w-10 h-10 rounded-full bg-slate-600 text-white flex items-center justify-center text-xl group-hover:scale-110 transition">
-                        🛠️</div>
-                    <div>
-                        <div class="font-bold">Testno okolje</div>
-                        <div class="text-xs text-slate-400">Preizkusi delovanje</div>
-                    </div>
+                    class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-xl transition-all flex items-center justify-center gap-2 group text-sm mb-4">
+                    <span>🛠️</span> Testno okolje
                 </button>
 
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 ml-2">Izberi

@@ -299,8 +299,8 @@ const app = {
 
     levelUpSlalom() {
         this.level++;
-        this.timeLeft = 120; // Reset 2 mins
-        this.showNotification(`Čas je potekel! Stopnja ${this.level} - Hitreje!`);
+        // NO Time Reset for Slalom - strict 2 min limit
+        this.showNotification(`Odlično! Stopnja ${this.level} - Hitreje!`);
         this.updateHUD();
     },
 
@@ -641,9 +641,8 @@ const app = {
             this.coinsCollected = 0;
             this.level++;
             this.showNotification(`Stopnja ${this.level}! Kovanci so hitrejši.`);
+            this.spawnCoin();
         }
-
-        this.spawnCoin();
     }
 };
 
@@ -754,12 +753,16 @@ const SlalomManager = {
             // Passed Player
             if (g.y > playerBot && !g.passed) {
                 g.passed = true;
-                // Determine if we actually "cleared" it for points logic -> simplified above visually
-                // If it was green -> points?
-                // For prototype, let's just award points for passing Y threshold without being "hit" logic storage.
-                // Simplified: Just +10 points for every gate that goes off screen
-                app.score += 10;
                 this.gatesPassed++;
+
+                // Score: 10 pts per gate
+                app.score += 10;
+
+                // Level Up Check: Every 10 gates
+                if (this.gatesPassed % 10 === 0) {
+                    app.levelUpSlalom();
+                }
+
                 app.updateHUD();
             }
 
