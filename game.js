@@ -401,6 +401,17 @@ const app = {
         this.gameScoreElem.innerText = this.score;
         this.gameTimerElem.innerText = this.timeLeft + 's';
 
+        // Timer Visibility Logic
+        if (this.gameTimerElem.parentElement) {
+            if (this.activeGame === 'SLALOM') {
+                this.gameTimerElem.parentElement.classList.add('invisible');
+                // Also hide the separator if possible? The separator is the previous element to the parent.
+                // But simplified: just hide the timer cluster.
+            } else {
+                this.gameTimerElem.parentElement.classList.remove('invisible');
+            }
+        }
+
         if (this.activeGame === 'COIN') {
             this.gameScoreElem.innerText = `${this.coinsCollected}/10 (Nivo ${this.level})`;
         }
@@ -545,7 +556,15 @@ const app = {
             this.isConnected = true;
             document.getElementById('device-status').innerText = "Povezano";
             document.getElementById('device-status').className = "text-center mb-2 text-teal-600 font-bold";
-            document.getElementById('connectBtn').classList.add('hidden'); // Hide connect button
+            // document.getElementById('connectBtn').classList.add('hidden'); // Old behavior
+
+            // Hide entire Connection UI block
+            const connUI = document.getElementById('connection-ui');
+            if (connUI) connUI.classList.add('hidden');
+
+            // Update Battery Label
+            const batLabel = document.getElementById('battery-label-text');
+            if (batLabel) batLabel.innerText = "Deska povezana";
 
         } catch (error) {
             console.error(error);
@@ -704,7 +723,7 @@ const SlalomManager = {
     start(difficulty) {
         this.gates = [];
         this.gatesPassed = 0;
-        this.baseSpeed = difficulty === 'HARD' ? 3.0 : (difficulty === 'MEDIUM' ? 2.0 : 1.5);
+        this.baseSpeed = difficulty === 'HARD' ? 2.5 : (difficulty === 'MEDIUM' ? 1.5 : 1.0);
         // Pre-spawn some gates
         this.spawnGate(-100);
         this.spawnGate(-300);
