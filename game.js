@@ -317,6 +317,9 @@ const app = {
         // Start Timer
         if (this.timerId) clearInterval(this.timerId);
         this.timerId = setInterval(() => {
+            // Skiing: No timer
+            if (this.activeGame === 'SLALOM') return;
+
             this.timeLeft--;
             this.updateHUD();
 
@@ -334,11 +337,8 @@ const app = {
             }
 
             if (this.timeLeft <= 0) {
-                if (this.activeGame === 'SLALOM') {
-                    this.levelUpSlalom();
-                } else if (this.activeGame === 'TEST') {
+                if (this.activeGame === 'TEST') {
                     // In Test mode, just loop infinite time or reset?
-                    // Let's just reset timer so it doesn't end.
                     this.timeLeft = 120;
                 } else {
                     this.endGameLogic(true); // Time's up
@@ -362,24 +362,20 @@ const app = {
         if (!finished) return; // Just stopped
 
         // Win/Loss Condition
-        let success = false;
         let message = `Čas je potekel! Rezultat: ${this.score}`;
 
         if (this.activeGame === 'COIN') {
-            if (this.coinsCollected >= 20) {
-                message = `Čestitke! Zbral si ${this.coinsCollected} kovancev!`;
-            } else {
-                message = `Konec igre! Premalo kovancev (${this.coinsCollected}/20).`;
-            }
+            // Coin is now endurance
+            message = `Konec igre! Dosegel si stopnjo ${this.level}. Zbrani kovanci: ${this.score}`;
         } else if (this.activeGame === 'HOLD') {
             message = `Konec vaje! Dosegel si stopnjo ${this.level}.`;
         } else if (this.activeGame === 'MAZE') {
             message = `Čas je potekel!`;
         } else if (this.activeGame === 'SLALOM') {
             if (finished === 'CRASH') {
-                message = `Zadeli ste vratca! Konec igre.`;
+                message = `Konec igre! Zadeli ste vratca.`;
             } else {
-                message = `Cilj! Prevoženih vratc: ${Math.floor(this.score / 10)}.`;
+                message = `Cilj! Prevoženih vratc: ${this.score}.`;
             }
         } else if (this.activeGame === 'TEST') {
             message = "Konec testiranja.";
@@ -406,7 +402,7 @@ const app = {
         this.gameTimerElem.innerText = this.timeLeft + 's';
 
         if (this.activeGame === 'COIN') {
-            this.gameScoreElem.innerText = `${this.coinsCollected}/20`;
+            this.gameScoreElem.innerText = `${this.coinsCollected}/10 (Lvl ${this.level})`;
         }
         if (this.activeGame === 'HOLD') {
             this.gameScoreElem.innerText = `Lvl ${this.level}`;
@@ -464,8 +460,8 @@ const app = {
             this.isHolding = true;
             this.holdTimer += dt;
 
-            // 10 seconds hold to level up
-            if (this.holdTimer >= 10.0) {
+            // 5 seconds hold to level up
+            if (this.holdTimer >= 5.0) {
                 this.levelUpHold();
             }
         } else {
@@ -478,10 +474,10 @@ const app = {
     levelUpHold() {
         this.level++;
         this.holdTimer = 0;
-        this.score += 100 * this.level;
+        this.score += 2; // 2 points per completed hold
 
-        // Make harder: Smaller radius
-        this.holdTarget.r = Math.max(20, this.holdTarget.r - 10);
+        // Make harder: Smaller radius (slower reduction)
+        this.holdTarget.r = Math.max(20, this.holdTarget.r - 5);
 
         // Higher levels: Offset center
         if (this.level > 1) { // Changed to > 1 so it happens earlier
@@ -683,7 +679,7 @@ const app = {
         const dist = Math.sqrt(Math.pow(pCenterX - cCenterX, 2) + Math.pow(pCenterY - cCenterY, 2));
 
         if (dist < (PLAYER_SIZE / 2 + COIN_SIZE / 2)) {
-            this.score += 10;
+            this.score += 1;
             this.coinsCollected++;
             this.updateHUD();
             this.coinElem.remove();
@@ -691,7 +687,8 @@ const app = {
             if (this.coinsCollected >= 10) {
                 this.coinsCollected = 0;
                 this.level++;
-                this.showNotification(`Stopnja ${this.level}! Kovanci so hitrejši.`);
+                this.timeLeft = 60; // Reset timer
+                this.showNotification(`Stopnja ${this.level}! +60s`);
             }
             this.spawnCoin();
         }
@@ -807,8 +804,8 @@ const SlalomManager = {
                 g.passed = true;
                 this.gatesPassed++;
 
-                // Score: 10 pts per gate
-                app.score += 10;
+                // Score: 1 pts per gate
+                app.score += 1;
 
                 // Level Up Check: Every 10 gates
                 if (this.gatesPassed % 10 === 0) {
