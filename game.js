@@ -141,7 +141,7 @@ const app = {
     playerX: 160,
     playerY: 160,
     score: 0,
-    timeLeft: 120, // 2 minutes default
+    timeLeft: 60, // 60 seconds default
     gameLoopId: null,
     timerId: null,
     level: 1, // Current level
@@ -264,7 +264,7 @@ const app = {
 
         // Reset Game Data
         this.score = 0;
-        this.timeLeft = 120; // 2 min limit for all games as per user req
+        this.timeLeft = 60; // 60s limit for all games as per user req
         this.playerX = 160;
         this.playerY = 160;
         this.isPlaying = true;
@@ -354,7 +354,7 @@ const app = {
         this.updateHUD();
     },
 
-    endGameLogic(finished) {
+    endGameLogic(finished, reason) {
         this.isPlaying = false;
         clearInterval(this.timerId);
         cancelAnimationFrame(this.gameLoopId);
@@ -372,7 +372,7 @@ const app = {
         } else if (this.activeGame === 'MAZE') {
             message = `Čas je potekel!`;
         } else if (this.activeGame === 'SLALOM') {
-            if (finished === 'CRASH') {
+            if (reason === 'CRASH') {
                 message = `Konec igre! Zadeli ste vratca.`;
             } else {
                 message = `Cilj! Prevoženih vratc: ${this.score}.`;
