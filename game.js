@@ -350,7 +350,7 @@ const app = {
     levelUpSlalom() {
         this.level++;
         // NO Time Reset for Slalom - strict 2 min limit
-        this.showNotification(`Odlično! Stopnja ${this.level} - Hitreje!`);
+        this.showNotification(`Odlično! Nivo ${this.level} - Hitreje!`);
         this.updateHUD();
     },
 
@@ -402,13 +402,13 @@ const app = {
         this.gameTimerElem.innerText = this.timeLeft + 's';
 
         if (this.activeGame === 'COIN') {
-            this.gameScoreElem.innerText = `${this.coinsCollected}/10 (Lvl ${this.level})`;
+            this.gameScoreElem.innerText = `${this.coinsCollected}/10 (Nivo ${this.level})`;
         }
         if (this.activeGame === 'HOLD') {
-            this.gameScoreElem.innerText = `Lvl ${this.level}`;
+            this.gameScoreElem.innerText = `Nivo ${this.level}`;
         }
         if (this.activeGame === 'SLALOM') {
-            this.gameScoreElem.innerText = `Hitr: ${app.level}`;
+            this.gameScoreElem.innerText = `Nivo ${this.level}`;
         }
     },
 
@@ -489,7 +489,7 @@ const app = {
             this.holdTarget.y = Math.max(80, Math.min(GAME_SIZE - 80, this.holdTarget.y));
         }
 
-        this.showNotification(`Stopnja ${this.level}!`);
+        this.showNotification(`Nivo ${this.level}!`);
         this.updateHUD();
     },
 
@@ -688,7 +688,7 @@ const app = {
                 this.coinsCollected = 0;
                 this.level++;
                 this.timeLeft = 60; // Reset timer
-                this.showNotification(`Stopnja ${this.level}! +60s`);
+                this.showNotification(`Nivo ${this.level}! +60s`);
             }
             this.spawnCoin();
         }
