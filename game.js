@@ -204,8 +204,7 @@ const app = {
     gameTimerElem: document.getElementById('game-timer'),
 
     init() {
-        ProfileManager.load();
-        ProfileManager.updateUI();
+        ProfileManager.init();
 
         // Connect Button
         document.getElementById('connectBtn').addEventListener('click', () => this.connectBluetooth());
