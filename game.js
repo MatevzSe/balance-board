@@ -265,6 +265,8 @@ const app = {
         // Reset Game Data
         this.score = 0;
         this.timeLeft = 60; // 60s limit for all games as per user req
+        if (this.activeGame === 'HOLD') this.timeLeft = 30; // 30s limit for Hold
+
         this.playerX = 160;
         this.playerY = 160;
         this.isPlaying = true;
@@ -393,33 +395,49 @@ const app = {
             });
         }
 
-        this.showNotification(message, 5000);
+        // Show Game Over Modal instead of Alert/Notification
+        const modal = document.getElementById('game-over-modal');
+        if (modal) {
+            document.getElementById('go-score').innerText = this.score;
+            document.getElementById('go-level').innerText = this.level;
+
+            let reasonText = "Čas je potekel";
+            if (finished === 'CRASH') reasonText = "Trk!";
+            else if (this.activeGame === 'MAZE') reasonText = "Labirint končan";
+            else if (this.activeGame === 'TEST') reasonText = "Test končan";
+            else if (this.activeGame === 'SLALOM' && reason !== 'CRASH') reasonText = "Cilj!";
+
+            document.getElementById('go-reason').innerText = reasonText;
+            modal.classList.remove('hidden');
+        } else {
+            this.showNotification(message, 5000);
+            this.showMenu();
+        }
+    },
+
+    closeGameOver() {
+        const modal = document.getElementById('game-over-modal');
+        if (modal) modal.classList.add('hidden');
         this.showMenu();
     },
 
     updateHUD() {
-        this.gameScoreElem.innerText = this.score;
-        this.gameTimerElem.innerText = this.timeLeft + 's';
+        const elScore = document.getElementById('game-score');
+        const elTimer = document.getElementById('game-timer');
+        const elLevel = document.getElementById('game-level');
+
+        if (elScore) elScore.innerText = this.score;
+        if (elLevel) elLevel.innerText = this.level;
+        if (elTimer) elTimer.innerText = this.timeLeft + 's';
 
         // Timer Visibility Logic
-        if (this.gameTimerElem.parentElement) {
+        if (elTimer && elTimer.parentElement) {
             if (this.activeGame === 'SLALOM') {
-                this.gameTimerElem.parentElement.classList.add('invisible');
-                // Also hide the separator if possible? The separator is the previous element to the parent.
-                // But simplified: just hide the timer cluster.
+                // Hide time for Slalom
+                elTimer.parentElement.classList.add('opacity-0');
             } else {
-                this.gameTimerElem.parentElement.classList.remove('invisible');
+                elTimer.parentElement.classList.remove('opacity-0');
             }
-        }
-
-        if (this.activeGame === 'COIN') {
-            this.gameScoreElem.innerText = `${this.coinsCollected}/10 (Nivo ${this.level})`;
-        }
-        if (this.activeGame === 'HOLD') {
-            this.gameScoreElem.innerText = `Nivo ${this.level}`;
-        }
-        if (this.activeGame === 'SLALOM') {
-            this.gameScoreElem.innerText = `Nivo ${this.level}`;
         }
     },
 
@@ -439,26 +457,25 @@ const app = {
         el.style.left = (this.holdTarget.x - this.holdTarget.r) + 'px';
         el.style.top = (this.holdTarget.y - this.holdTarget.r) + 'px';
 
-        // Color Progression Logic
-        // 0-3s: Red/Orange, 3-6s: Yellow, 6-9s: Yellow-Green, 9-10s: Green
-        let colorClass = "border-red-500 bg-red-500/10";
+        // Color & Countdown Logic
+        // Goal: 5 Seconds.
+        // 0-2s: Red
+        // 2-4s: Orange/Yellow
+        // 4-5s: Green
+        let colorClass = "border-slate-300 bg-transparent";
+        let textContent = "";
+
         if (this.isHolding) {
-            if (this.holdTimer > 9.0) colorClass = "border-emerald-500 bg-emerald-500/40 animate-pulse";
-            else if (this.holdTimer > 6.0) colorClass = "border-lime-500 bg-lime-500/30";
-            else if (this.holdTimer > 3.0) colorClass = "border-yellow-500 bg-yellow-500/20";
-            else colorClass = "border-orange-500 bg-orange-500/10";
-        } else {
-            colorClass = "border-slate-300 bg-transparent";
+            const timeLeft = Math.ceil(5.0 - this.holdTimer);
+            textContent = `<span class="text-white font-bold text-2xl drop-shadow-md font-mono">${timeLeft}</span>`;
+
+            if (this.holdTimer > 4.0) colorClass = "border-emerald-500 bg-emerald-500/50 animate-pulse";
+            else if (this.holdTimer > 2.0) colorClass = "border-yellow-400 bg-yellow-400/30";
+            else colorClass = "border-red-500 bg-red-500/20";
         }
 
         el.className = `absolute rounded-full border-4 transition-all duration-300 flex items-center justify-center ${colorClass}`;
-
-        // Optional: Show timer inside?
-        if (this.isHolding) {
-            el.innerHTML = `<span class="text-white font-bold text-lg drop-shadow-md">${Math.floor(this.holdTimer)}</span>`;
-        } else {
-            el.innerHTML = "";
-        }
+        el.innerHTML = textContent;
     },
 
     checkHoldLogic(dt) {
@@ -471,9 +488,9 @@ const app = {
             this.isHolding = true;
             this.holdTimer += dt;
 
-            // 5 seconds hold to level up
+            // 5 seconds hold to success
             if (this.holdTimer >= 5.0) {
-                this.levelUpHold();
+                this.successHold();
             }
         } else {
             this.isHolding = false;
@@ -482,25 +499,30 @@ const app = {
         this.updateHoldTargetVisual();
     },
 
-    levelUpHold() {
-        this.level++;
+    successHold() {
+        // Success!
         this.holdTimer = 0;
-        this.score += 2; // 2 points per completed hold
+        this.score += 5; // 5 points per hold
 
-        // Make harder: Smaller radius (slower reduction)
-        this.holdTarget.r = Math.max(20, this.holdTarget.r - 5);
-
-        // Higher levels: Offset center
-        if (this.level > 1) { // Changed to > 1 so it happens earlier
-            const offset = 60;
-            this.holdTarget.x = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
-            this.holdTarget.y = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
-
-            this.holdTarget.x = Math.max(80, Math.min(GAME_SIZE - 80, this.holdTarget.x));
-            this.holdTarget.y = Math.max(80, Math.min(GAME_SIZE - 80, this.holdTarget.y));
+        // Level Up every 10 points (every 2 holds)
+        if (this.score % 10 === 0) {
+            this.level++;
+            this.timeLeft = 30; // Reset time for Hold
+            // Make harder: Smaller radius (slower reduction)
+            this.holdTarget.r = Math.max(20, this.holdTarget.r - 5);
+            this.showNotification(`Odlično! Nivo ${this.level}`);
+        } else {
+            this.showNotification(`Dobro! +5 točk`);
         }
 
-        this.showNotification(`Nivo ${this.level}!`);
+        // Move target
+        const offset = 60 + (this.level * 5);
+        this.holdTarget.x = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
+        this.holdTarget.y = (GAME_SIZE / 2) + (Math.random() * offset * 2 - offset);
+
+        this.holdTarget.x = Math.max(80, Math.min(GAME_SIZE - 80, this.holdTarget.x));
+        this.holdTarget.y = Math.max(80, Math.min(GAME_SIZE - 80, this.holdTarget.y));
+
         this.updateHUD();
     },
 
@@ -706,8 +728,14 @@ const app = {
             if (this.coinsCollected >= 10) {
                 this.coinsCollected = 0;
                 this.level++;
-                this.timeLeft = 60; // Reset timer
-                this.showNotification(`Nivo ${this.level}! +60s`);
+                this.timeLeft = 60; // Reset timer was added by user, keep it? User didn't complain about it. "10 points means new level".
+                // User said "10 points for new level is for every game". Didn't explicitly say "reset time". 
+                // In Slalom user said "game ends after 2 min" (no reset).
+                // In Coin, user previously added `this.timeLeft = 60`.
+                // I'll keep the time reset for Coin as it's an "Endurance" style potentially?
+                // Actually, user said "game of coins ... ups the level with each coin ... change that to 10".
+                // Let's keep strict to "10 pts = level".
+                this.showNotification(`Nivo ${this.level}! Kovanci so hitrejši.`);
             }
             this.spawnCoin();
         }
