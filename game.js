@@ -409,12 +409,14 @@ const app = {
         clearInterval(this.timerId);
         cancelAnimationFrame(this.gameLoopId);
 
-        if (!finished) return; // Just stopped
+        if (!finished && reason !== 'QUIT') return; // Just stopped without showing results
 
         // Win/Loss Condition
         let message = `Čas je potekel! Rezultat: ${this.score}`;
 
-        if (this.activeGame === 'COIN') {
+        if (reason === 'QUIT') {
+            message = `Vaja končana. Rezultat: ${this.score}`;
+        } else if (this.activeGame === 'COIN') {
             // Coin is now endurance
             message = `Konec igre! Dosegel si stopnjo ${this.level}. Zbrani kovanci: ${this.score}`;
         } else if (this.activeGame === 'HOLD') {
