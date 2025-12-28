@@ -16,48 +16,114 @@ const CHAR_UUID = "19b10001-e8f2-537e-4f6c-d104768a1214";
 // --- PROFILE MANAGER ---
 const ProfileManager = {
     data: {
-        totalTimeSec: 0,
         totalScore: 0,
+        totalTimeSec: 0,
         gamesPlayed: 0,
-        sessions: []
-    },
-
-    load() {
-        const stored = localStorage.getItem('balance_profile');
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            // Migration: If totalScore is missing
-            if (parsed.totalScore === undefined) parsed.totalScore = parsed.totalCoins * 10 || 0;
-            if (parsed.gamesPlayed === undefined) parsed.gamesPlayed = parsed.sessions.length || 0;
-            this.data = parsed;
+        sessions: [], // Keep for backward compat
+        highScores: { // [NEW] Track bests
+            COIN: 0,
+            MAZE: 0,
+            HOLD: 0,
+            SLALOM: 0
         }
     },
 
-    save() {
-        localStorage.setItem('balance_profile', JSON.stringify(this.data));
+    ranks: [
+        { min: 0, title: "Začetnik" },
+        { min: 100, title: "Učenec" },
+        { min: 300, title: "Rekreativec" },
+        { min: 600, title: "Entuziast" },
+        { min: 1000, title: "Polprofesionalec" },
+        { min: 1500, title: "Profesionalec" },
+        { min: 2200, title: "Ekspert" },
+        { min: 3000, title: "Mojster" },
+        { min: 4000, title: "Velemojster" },
+        { min: 5000, title: "Legenda" }
+    ],
+
+    init() {
+        const stored = localStorage.getItem('balance_profile_v2');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                this.data = { ...this.data, ...parsed };
+                // Ensure highScores struct exists if migrated
+                if (!this.data.highScores) {
+                    this.data.highScores = { COIN: 0, MAZE: 0, HOLD: 0, SLALOM: 0 };
+                }
+            } catch (e) {
+                console.error("Profile load error", e);
+            }
+        }
         this.updateUI();
     },
 
-    addSession(stats) {
-        this.data.totalTimeSec += stats.time || 0;
-        this.data.totalScore += stats.score || 0;
-        this.data.gamesPlayed++;
+    save() {
+        localStorage.setItem('balance_profile_v2', JSON.stringify(this.data));
+        this.updateUI();
+    },
 
-        // Keep last 20 sessions (increased info)
-        this.data.sessions.unshift({
-            ...stats,
-            date: new Date().toISOString()
-        });
-        if (this.data.sessions.length > 20) this.data.sessions.pop();
+    addSession(session) {
+        this.data.totalScore += session.score;
+        this.data.totalTimeSec += session.time;
+        this.data.gamesPlayed++;
+        this.data.sessions.unshift(session);
+        if (this.data.sessions.length > 50) this.data.sessions.pop();
+
+        // Update High Scores
+        let gameKey = null;
+        if (session.game === "Kovanci") gameKey = 'COIN';
+        else if (session.game === "Labirint") gameKey = 'MAZE';
+        else if (session.game === "Slalom") gameKey = 'SLALOM';
+        else if (session.game === "Drži sredino") gameKey = 'HOLD';
+
+        if (gameKey) {
+            if (session.score > (this.data.highScores[gameKey] || 0)) {
+                this.data.highScores[gameKey] = session.score;
+            }
+        }
 
         this.save();
     },
 
+    getRankInfo() {
+        const score = this.data.totalScore;
+        let rankIndex = 0;
+        for (let i = 0; i < this.ranks.length; i++) {
+            if (score >= this.ranks[i].min) {
+                rankIndex = i;
+            } else {
+                break;
+            }
+        }
+
+        const currentRank = this.ranks[rankIndex];
+        const nextRank = this.ranks[rankIndex + 1];
+
+        let progress = 100;
+        let nextScore = score; // Cap at max
+
+        if (nextRank) {
+            const range = nextRank.min - currentRank.min;
+            const current = score - currentRank.min;
+            progress = Math.min(100, Math.max(0, (current / range) * 100));
+            nextScore = nextRank.min;
+        }
+
+        return {
+            title: currentRank.title,
+            progress: progress,
+            currentScore: score,
+            nextScore: nextRank ? nextRank.min : "MAX"
+        };
+    },
+
     updateUI() {
-        // Stats - Safety checks added
+        // Menu Score
         const elMenuScore = document.getElementById('menu-total-score');
         if (elMenuScore) elMenuScore.innerText = this.data.totalScore;
 
+        // Profile Stats
         const elProfileScore = document.getElementById('profile-total-score');
         if (elProfileScore) elProfileScore.innerText = this.data.totalScore;
 
@@ -67,55 +133,32 @@ const ProfileManager = {
         const elProfileGames = document.getElementById('profile-games');
         if (elProfileGames) elProfileGames.innerText = this.data.gamesPlayed;
 
-        // Graph (Last 5)
-        const recent = this.data.sessions.slice(0, 5).reverse(); // Oldest to newest for graph L->R
-        const graphContainer = document.getElementById('profile-graph');
+        // High Scores
+        const elHsCoin = document.getElementById('hs-coin');
+        if (elHsCoin) elHsCoin.innerText = this.data.highScores.COIN || 0;
 
-        if (recent.length > 0) {
-            graphContainer.innerHTML = "";
-            const maxScore = Math.max(...recent.map(s => s.score)) || 100;
+        const elHsMaze = document.getElementById('hs-maze');
+        if (elHsMaze) elHsMaze.innerText = this.data.highScores.MAZE || 0;
 
-            recent.forEach(s => {
-                const h = Math.max(10, (s.score / maxScore) * 100);
-                const bar = document.createElement('div');
-                bar.className = "flex-1 mx-1 bg-teal-400 rounded-t-sm hover:bg-teal-500 transition-all relative group";
-                bar.style.height = h + "%";
-                // Tooltip
-                bar.innerHTML = `<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none">${s.score}</div>`;
-                graphContainer.appendChild(bar);
-            });
-        } else {
-            graphContainer.innerHTML = `<div class="w-full h-full flex items-center justify-center text-slate-300 text-xs italic">Ni podatkov</div>`;
-        }
+        const elHsHold = document.getElementById('hs-hold');
+        if (elHsHold) elHsHold.innerText = this.data.highScores.HOLD || 0;
 
-        // History List
-        const list = document.getElementById('history-list');
-        list.innerHTML = "";
+        const elHsSlalom = document.getElementById('hs-slalom');
+        if (elHsSlalom) elHsSlalom.innerText = this.data.highScores.SLALOM || 0;
 
-        const icons = {
-            'Kovanci': '🪙',
-            'Labirint': '🌀',
-            'Slalom': '⛷️',
-            'Drži sredino': '🎯',
-            'Test': '🛠️' // Fallback
-        };
+        // Experience / Rank
+        const rank = this.getRankInfo();
+        const elRankTitle = document.getElementById('profile-rank-title');
+        if (elRankTitle) elRankTitle.innerText = rank.title;
 
-        this.data.sessions.slice(0, 10).forEach((s) => {
-            const icon = icons[s.game] || '🎮';
-            const date = s.date ? new Date(s.date).toLocaleDateString() : 'Pred kratkim';
+        const elRankBar = document.getElementById('profile-rank-bar');
+        if (elRankBar) elRankBar.style.width = rank.progress + "%";
 
-            const div = document.createElement('div');
-            div.className = "flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100";
-            div.innerHTML = `
-                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xl shadow-sm border border-slate-100">${icon}</div>
-                <div class="flex-1">
-                    <div class="font-bold text-slate-700 text-sm">${s.game}</div>
-                    <div class="text-[10px] text-slate-400 font-medium uppercase tracking-wide">${s.diff} • ${date}</div>
-                </div>
-                <div class="text-teal-600 font-bold text-lg">+${s.score}</div>
-            `;
-            list.appendChild(div);
-        });
+        const elXpCur = document.getElementById('profile-xp-current');
+        if (elXpCur) elXpCur.innerText = rank.currentScore;
+
+        const elXpNext = document.getElementById('profile-xp-next');
+        if (elXpNext) elXpNext.innerText = rank.nextScore;
     }
 };
 

@@ -236,58 +236,107 @@
             </div>
 
             <!-- End Game Button -->
-            <button onclick="app.endGame()"
-                class="px-6 py-2 bg-white/50 hover:bg-white text-slate-500 rounded-full text-sm font-medium transition mt-8">Končaj
-                vajo</button>
+            <!-- End Game Button -->
+            <button onclick="app.endGameLogic(false, 'QUIT')"
+                class="px-8 py-3 bg-red-500/90 backdrop-blur shadow-lg shadow-red-500/30 text-white rounded-full text-sm font-bold tracking-wide transition transform hover:scale-105 hover:bg-red-600 mt-8">
+                KONČAJ VAJO
+            </button>
         </div>
 
         <!-- ==================== VIEW: PROFILE (PROFIL) ==================== -->
         <div id="view-profile"
-            class="hidden w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-6 flex flex-col gap-6 max-h-[80vh] overflow-y-auto">
+            class="hidden w-full max-w-md bg-white/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-white/50 flex flex-col transition-transform translate-y-full z-40 fixed bottom-0 h-[85vh]">
 
-            <!-- Header: Total Score -->
-            <header class="text-center py-4 bg-teal-50 rounded-2xl border border-teal-100">
-                <div class="text-xs font-bold text-teal-400 uppercase tracking-widest mb-1">Skupni rezultat</div>
-                <div class="text-5xl font-bold text-teal-700 tracking-tighter" id="profile-total-score">0</div>
-                <div class="text-xs text-teal-600 mt-1">Vse zbrane točke</div>
-            </header>
-
-            <!-- Metrics Grid -->
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-indigo-50 p-4 rounded-2xl flex flex-col items-center justify-center">
-                    <div class="text-2xl mb-1">⏱️</div>
-                    <div class="font-bold text-slate-700 text-lg" id="profile-time">0m</div>
-                    <div class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Čas vaje</div>
+            <!-- Header -->
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white/50 rounded-t-3xl">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800">Tvoj napredek</h2>
+                    <p class="text-slate-500 text-sm">Pregled tvoje kariere</p>
                 </div>
-                <div class="bg-orange-50 p-4 rounded-2xl flex flex-col items-center justify-center">
-                    <div class="text-2xl mb-1">🎮</div>
-                    <div class="font-bold text-slate-700 text-lg" id="profile-games">0</div>
-                    <div class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Igre</div>
-                </div>
+                <button onclick="app.showMenu()"
+                    class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+                    <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
             </div>
 
-            <!-- Graph: Last 5 Games -->
-            <div class="bg-white border border-slate-100 p-4 rounded-2xl shadow-sm">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Zadnjih 5 iger</div>
-                <div id="profile-graph" class="flex items-end justify-between h-24 w-full px-2 gap-2">
-                    <!-- Bars injected via JS -->
-                    <div class="w-full h-full flex items-center justify-center text-slate-300 text-xs italic">Ni dovolj
-                        podatkov</div>
-                </div>
-            </div>
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
 
-            <!-- History List -->
-            <div class="flex-1">
-                <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 px-1">Zgodovina</div>
-                <div id="history-list" class="space-y-3">
-                    <!-- Items -->
-                </div>
-            </div>
+                <!-- EXPERIENCE CARD -->
+                <div
+                    class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">🏆</div>
+                    <div class="relative z-10">
+                        <div class="text-indigo-100 text-xs font-bold uppercase tracking-widest mb-1">Stopnja izkušenj
+                        </div>
+                        <h3 class="text-3xl font-extrabold mb-4" id="profile-rank-title">Začetnik</h3>
 
-            <button onclick="app.showMenu()"
-                class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all shadow-lg mt-2">
-                Nazaj na meni
-            </button>
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-black/20 rounded-full h-4 mb-2 overflow-hidden">
+                            <div id="profile-rank-bar"
+                                class="bg-yellow-400 h-full rounded-full transition-all duration-1000"
+                                style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-indigo-100 font-mono">
+                            <span id="profile-xp-current">0</span>
+                            <span id="profile-xp-next">100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KEY STATS -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div class="text-slate-400 text-xs font-bold uppercase mb-1">Skupaj točk</div>
+                        <div class="text-2xl font-bold text-slate-800" id="profile-total-score">0</div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div class="text-slate-400 text-xs font-bold uppercase mb-1">Odigranih iger</div>
+                        <div class="text-2xl font-bold text-slate-800" id="profile-games">0</div>
+                    </div>
+                </div>
+
+                <!-- HIGH SCORES -->
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <span>🥇</span> Najboljši rezultati
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <!-- COIN -->
+                        <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex flex-col">
+                            <div class="text-yellow-600 text-xs font-bold uppercase mb-1">Kovanci</div>
+                            <div class="text-2xl font-bold text-slate-800 flex-1" id="hs-coin">0</div>
+                        </div>
+                        <!-- MAZE -->
+                        <div class="bg-green-50 p-4 rounded-xl border border-green-100 flex flex-col">
+                            <div class="text-green-600 text-xs font-bold uppercase mb-1">Labirint</div>
+                            <div class="text-2xl font-bold text-slate-800 flex-1" id="hs-maze">0</div>
+                        </div>
+                        <!-- HOLD -->
+                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col">
+                            <div class="text-blue-600 text-xs font-bold uppercase mb-1">Ravnotežje</div>
+                            <div class="text-2xl font-bold text-slate-800 flex-1" id="hs-hold">0</div>
+                        </div>
+                        <!-- SLALOM -->
+                        <div class="bg-cyan-50 p-4 rounded-xl border border-cyan-100 flex flex-col">
+                            <div class="text-cyan-600 text-xs font-bold uppercase mb-1">Slalom</div>
+                            <div class="text-2xl font-bold text-slate-800 flex-1" id="hs-slalom">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
+                    <div>
+                        <div class="text-slate-400 text-xs font-bold uppercase mb-1">Čas igranja</div>
+                        <div class="text-lg font-bold text-slate-700" id="profile-time">0 min</div>
+                    </div>
+                    <div class="text-2xl opacity-20">⏱</div>
+                </div>
+
+            </div>
         </div>
 
     </div>
