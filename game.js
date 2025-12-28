@@ -328,8 +328,8 @@ const app = {
             // Mode Specific Seconds Logic
             if (this.activeGame === 'COIN') {
                 this.coinIdleTime++;
-                // Dynamic Speed: Starts at 10s, decreases by 1s per level, min 2s
-                const idleLimit = Math.max(2, 11 - this.level);
+                // Dynamic Speed: Starts at 8s, decreases by 1s per level, min 2s
+                const idleLimit = Math.max(2, 9 - this.level);
 
                 if (this.coinIdleTime > idleLimit) {
                     if (this.coinElem) this.coinElem.remove();
