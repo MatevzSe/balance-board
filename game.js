@@ -266,9 +266,15 @@ const app = {
         this.score = 0;
         this.timeLeft = 60; // 60s limit for all games as per user req
         if (this.activeGame === 'HOLD') this.timeLeft = 30; // 30s limit for Hold
+        if (this.activeGame === 'MAZE') this.timeLeft = 60; // 60s limit for Maze
 
-        this.playerX = 160;
-        this.playerY = 160;
+        if (this.activeGame === 'MAZE') {
+            this.playerX = 15; // Start in top-left cell 1,1 (10px wall + 5px margin)
+            this.playerY = 15;
+        } else {
+            this.playerX = 160;
+            this.playerY = 160;
+        }
         this.isPlaying = true;
         this.level = 1;
 
