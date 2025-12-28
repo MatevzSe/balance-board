@@ -934,124 +934,168 @@ const SlalomManager = {
 // --- MAZE MANAGER ---
 // --- MAZE MANAGER ---
 const MazeManager = {
-    walls: [],
-    cellSize: 50,
+    cellSize: 10, // 10px blocks
+    gridDim: 35,  // 350px / 10px = 35
+    map: [],      // 35x35 grid of 0/1
 
-    // Simple maps for prototype (1 = wall, 0 = empty)
-    // 7x7 grid for GAME_SIZE 350
-    maps: [
-        [ // Level 1 (Easy)
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 1, 1, 0, 1],
-            [1, 0, 0, 0, 1, 0, 1],
-            [1, 0, 1, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0], // Opened right side
-            [1, 1, 1, 1, 1, 0, 0]  // Opened goal area
-        ],
-        [ // Level 2 (Med)
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 1, 0, 0, 1],
-            [1, 0, 0, 1, 0, 0, 1],
-            [1, 0, 1, 1, 1, 0, 1],
-            [1, 0, 0, 0, 0, 0, 1],
-            [1, 1, 1, 0, 0, 0, 0], // Opened right side
-            [1, 1, 1, 1, 1, 0, 0]  // Opened goal area
-        ],
-        [ // Level 3 (Hard)
-            [1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 1, 0, 0, 0, 1],
-            [1, 0, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 1, 0, 1],
-            [1, 1, 1, 0, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0], // Opened right side
-            [1, 1, 1, 1, 1, 0, 0]  // Opened goal area
-        ]
-    ],
+    generate(level) {
+        // Init full wall grid
+        this.map = Array(this.gridDim).fill(0).map(() => Array(this.gridDim).fill(1));
 
-    generate(difficulty) {
-        const area = document.getElementById('game-area');
-        // Clear previous
-        Array.from(document.getElementsByClassName('maze-wall')).forEach(el => el.remove());
-        const existingGoal = document.getElementById('maze-goal');
-        if (existingGoal) existingGoal.remove();
+        // Logical Grid for Maze (Paths need to be ~40px wide to fit 30px player)
+        // 40px path + 10px wall = 50px logical cell.
+        // 350 / 50 = 7 logical cells.
+        const logicalDim = 7;
+        const logicalGrid = Array(logicalDim).fill(0).map(() => Array(logicalDim).fill(0)); // Visited
 
-        this.walls = [];
+        // Recursive Backtracker (DFS)
+        const stack = [];
+        const startR = 0;
+        const startC = 0;
 
-        let mapIndex = 0;
-        if (difficulty === 'MEDIUM') mapIndex = 1;
-        if (difficulty === 'HARD') mapIndex = 2;
+        logicalGrid[startR][startC] = 1; // Visited
+        stack.push({ r: startR, c: startC });
 
-        // Randomly flip map for variety? Or just stick to static for robustness
-        const map = this.maps[mapIndex];
-
-        for (let r = 0; r < 7; r++) {
-            for (let c = 0; c < 7; c++) {
-                if (map[r][c] === 1) {
-                    this.createWall(c * this.cellSize, r * this.cellSize);
+        // Helper to carve physical grid
+        function carve(lr, lc) {
+            const pr = lr * 5 + 1;
+            const pc = lc * 5 + 1;
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    if (pr + i < 35 && pc + j < 35) MazeManager.map[pr + i][pc + j] = 0;
                 }
             }
         }
 
-        // Add Goal
-        const goal = document.createElement('div');
-        goal.className = 'maze-goal absolute w-8 h-8 rounded-full animate-pulse flex items-center justify-center';
-        goal.style.backgroundColor = '#ec4899'; // Pink
-        goal.innerHTML = '🏁';
-        // Place goal at bottom right (6,5) roughly
-        goal.style.right = '25px';
-        goal.style.bottom = '25px';
-        goal.id = 'maze-goal';
-        area.appendChild(goal);
+        function carveWall(r1, c1, r2, c2) {
+            const prStart = r1 * 5 + 1; // Align with path rows
+            const pcStart = c1 * 5 + 1; // Align with path cols
 
-        // Place player at top left (1,1) safe spot
-        app.playerX = 60;
-        app.playerY = 60;
+            if (r1 === r2) { // Horizontal
+                const wallC = Math.max(c1, c2) * 5;
+                for (let i = 0; i < 4; i++) {
+                    MazeManager.map[prStart + i][wallC] = 0;
+                }
+            } else { // Vertical
+                const wallR = Math.max(r1, r2) * 5;
+                for (let j = 0; j < 4; j++) {
+                    MazeManager.map[wallR][pcStart + j] = 0;
+                }
+            }
+        }
+
+        carve(startR, startC);
+
+        while (stack.length > 0) {
+            const current = stack[stack.length - 1];
+            const neighbors = [];
+
+            // Check NESW
+            const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+            dirs.forEach(([dr, dc]) => {
+                const nr = current.r + dr;
+                const nc = current.c + dc;
+                if (nr >= 0 && nr < logicalDim && nc >= 0 && nc < logicalDim && logicalGrid[nr][nc] === 0) {
+                    neighbors.push({ r: nr, c: nc });
+                }
+            });
+
+            if (neighbors.length > 0) {
+                // Pick random
+                const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+
+                // Carve path
+                carveWall(current.r, current.c, next.r, next.c);
+                carve(next.r, next.c); // Carve destination room
+
+                logicalGrid[next.r][next.c] = 1;
+                stack.push(next);
+            } else {
+                stack.pop();
+            }
+        }
+
+        // Render
+        this.render();
     },
 
-    createWall(x, y) {
-        const area = document.getElementById('game-area');
-        const w = document.createElement('div');
-        w.className = 'maze-wall absolute bg-slate-500 rounded-sm shadow-sm';
-        w.style.width = this.cellSize + 'px';
-        w.style.height = this.cellSize + 'px';
-        w.style.left = x + 'px';
-        w.style.top = y + 'px';
-        area.appendChild(w);
+    render() {
+        const gameArea = document.getElementById('game-area');
+        // Clear previous walls & goal
+        const oldWalls = document.querySelectorAll('.wall');
+        oldWalls.forEach(w => w.remove());
+        const oldMazeWalls = document.querySelectorAll('.maze-wall'); // Clean up old types
+        oldMazeWalls.forEach(w => w.remove());
+        const oldGoal = document.getElementById('maze-goal');
+        if (oldGoal) oldGoal.remove();
 
-        this.walls.push({ x: x, y: y, w: this.cellSize, h: this.cellSize });
+
+        for (let r = 0; r < this.gridDim; r++) {
+            for (let c = 0; c < this.gridDim; c++) {
+                if (this.map[r][c] === 1) {
+                    const w = document.createElement('div');
+                    w.className = 'wall absolute bg-slate-400 border border-slate-500 rounded-sm shadow-sm';
+                    w.style.width = this.cellSize + 'px';
+                    w.style.height = this.cellSize + 'px';
+                    w.style.left = (c * this.cellSize) + 'px';
+                    w.style.top = (r * this.cellSize) + 'px';
+                    gameArea.appendChild(w);
+                }
+            }
+        }
+
+        // Add Goal Zone (Bottom-Right Logical Cell)
+        // 7th logical cell is index 6. 6*5+1 = 31. Range 31..34.
+        const goal = document.createElement('div');
+        goal.className = 'absolute bg-green-400/30 border-2 border-green-500 animate-pulse flex items-center justify-center';
+        goal.style.left = (31 * this.cellSize) + 'px'; // 310px
+        goal.style.top = (31 * this.cellSize) + 'px'; // 310px
+        goal.style.width = '40px';
+        goal.style.height = '40px';
+        goal.innerHTML = "🏁";
+        goal.id = "maze-goal";
+        gameArea.appendChild(goal);
     },
 
     checkCollision(pX, pY) {
-        // Simple AABB vs Walls
-        for (let w of this.walls) {
-            if (pX < w.x + w.w &&
-                pX + PLAYER_SIZE > w.x &&
-                pY < w.y + w.h &&
-                pY + PLAYER_SIZE > w.y) {
+        // Player Box
+        const pLeft = pX;
+        const pRight = pX + PLAYER_SIZE;
+        const pTop = pY;
+        const pBot = pY + PLAYER_SIZE;
 
-                // Collision Detected!
-                return true;
+        // Convert to Grid coords (min/max cells touched)
+        // Safety margin: Shrink player box slightly for collision to avoid "snagging"
+        const margin = 4;
+        const c1 = Math.floor((pLeft + margin) / this.cellSize);
+        const c2 = Math.floor((pRight - margin) / this.cellSize);
+        const r1 = Math.floor((pTop + margin) / this.cellSize);
+        const r2 = Math.floor((pBot - margin) / this.cellSize);
+
+        for (let r = r1; r <= r2; r++) {
+            for (let c = c1; c <= c2; c++) {
+                if (r >= 0 && r < this.gridDim && c >= 0 && c < this.gridDim) {
+                    if (this.map[r][c] === 1) return true; // Collision
+                } else {
+                    return true; // Out of bounds
+                }
             }
         }
 
         // Check Goal
-        const goal = document.getElementById('maze-goal');
-        if (goal) {
-            // Check distance to goal center
-            // Goal is roughly at (325, 325)
-            // Player center
-            const pCx = pX + PLAYER_SIZE / 2;
-            const pCy = pY + PLAYER_SIZE / 2;
+        // Goal is at 31,31 (logical 6,6)
+        if (c1 >= 31 && r1 >= 31) {
+            // Victory
+            app.score += 10;
+            app.level++;
+            app.timeLeft = 60; // Reset time to 60s
+            app.showNotification(`Labirint rešen! +10 točk (Nivo ${app.level})`);
 
-            // Simple hack: if we are in the bottom right corner cell
-            if (pCx > 300 && pCy > 300) {
-                app.score += 100 + (app.timeLeft * 10);
-                app.showNotification("Labirint rešen! +100 točk");
-                // Reset / Next Level
-                app.selectGame('MAZE');
-                app.startGame(app.difficulty);
-            }
+            // Move player back to start (Logical 0,0 -> 10,10)
+            app.playerX = 15; // 1*10 + margin
+            app.playerY = 15;
+            this.generate(app.level);
+            return false; // NOT a collision, so player move to 15,15 is key
         }
 
         return false;
