@@ -415,7 +415,7 @@ const app = {
         let message = `Čas je potekel! Rezultat: ${this.score}`;
 
         if (reason === 'QUIT') {
-            message = `Vaja končana. Rezultat: ${this.score}`;
+            message = `Igra prekinjena. Rezultat: ${this.score}`;
         } else if (this.activeGame === 'COIN') {
             // Coin is now endurance
             message = `Konec igre! Dosegel si stopnjo ${this.level}. Zbrani kovanci: ${this.score}`;
@@ -425,9 +425,9 @@ const app = {
             message = `Čas je potekel!`;
         } else if (this.activeGame === 'SLALOM') {
             if (reason === 'CRASH') {
-                message = `Konec igre! Zadeli ste vratca.`;
+                message = `Napaka! Zadeli ste vratca.`;
             } else {
-                message = `Cilj! Prevoženih vratc: ${this.score}.`;
+                message = `Vaja končana! Prevoženih vratc: ${this.score}.`;
             }
         } else if (this.activeGame === 'TEST') {
             message = "Konec testiranja.";
@@ -452,10 +452,17 @@ const app = {
             document.getElementById('go-level').innerText = this.level;
 
             let reasonText = "Čas je potekel";
-            if (finished === 'CRASH') reasonText = "Trk!";
-            else if (this.activeGame === 'MAZE') reasonText = "Labirint končan";
-            else if (this.activeGame === 'TEST') reasonText = "Test končan";
-            else if (this.activeGame === 'SLALOM' && reason !== 'CRASH') reasonText = "Cilj!";
+            if (reason === 'CRASH') {
+                reasonText = (this.activeGame === 'SLALOM') ? "Napaka" : "Trk!";
+            } else if (reason === 'QUIT') {
+                reasonText = "Igra prekinjena";
+            } else if (this.activeGame === 'MAZE') {
+                reasonText = "Labirint končan";
+            } else if (this.activeGame === 'TEST') {
+                reasonText = "Test končan";
+            } else if (this.activeGame === 'SLALOM') {
+                reasonText = "Cilj!";
+            }
 
             document.getElementById('go-reason').innerText = reasonText;
             modal.classList.remove('hidden');
