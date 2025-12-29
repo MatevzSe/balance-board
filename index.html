@@ -82,6 +82,48 @@
             </div>
         </div>
 
+        <!-- CALIBRATION MODAL -->
+        <div id="calibration-modal"
+            class="hidden absolute inset-0 z-[60] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+            <div
+                class="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full text-center border-4 border-white transform transition-all scale-100">
+                <div class="text-4xl mb-4">⚖️</div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-4">Kalibracija</h2>
+
+                <div class="text-slate-600 text-sm mb-6 space-y-4 text-left">
+                    <p>1. Postavite desko na <strong>popolnoma ravno</strong> podlago.</p>
+                    <p>2. Stopite z deske in pustite, da se vrednosti umirijo (cca. 10s).</p>
+                    <p>3. Pritisnite gumb spodaj za nastavitev ničelne točke.</p>
+                </div>
+
+                <!-- Live Data -->
+                <div class="bg-slate-50 p-4 rounded-2xl mb-8 flex justify-center gap-6">
+                    <div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pitch</div>
+                        <div id="cal-pitch" class="text-xl font-mono font-bold text-teal-600">0.00</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Roll</div>
+                        <div id="cal-roll" class="text-xl font-mono font-bold text-teal-600">0.00</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button onclick="app.saveCalibration()"
+                        class="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-all shadow-lg">
+                        Potrdi kalibracijo
+                    </button>
+                    <button onclick="app.closeCalibration()" class="text-slate-400 text-sm hover:text-slate-600 py-2">
+                        Prekliči
+                    </button>
+                    <button onclick="app.resetCalibration()"
+                        class="text-rose-500 text-xs hover:text-rose-600 font-bold mt-2">
+                        Ponastavi na 0 (Reset)
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- ==================== VIEW: MAIN MENU (JEDILNIK) ==================== -->
         <div id="view-menu"
             class="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-6 flex flex-col gap-6 transition-all">
