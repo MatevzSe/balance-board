@@ -637,8 +637,15 @@ const app = {
         this.calInterval = setInterval(() => {
             const elP = document.getElementById('cal-pitch');
             const elR = document.getElementById('cal-roll');
-            if (elP) elP.innerText = (this.rawPitch || 0).toFixed(2);
-            if (elR) elR.innerText = (this.rawRoll || 0).toFixed(2);
+            if (elP) {
+                // Show corrected values using CURRENT offsets
+                const correctedP = this.rawPitch - (ProfileManager.data.calibration.pitch || 0);
+                elP.innerText = correctedP.toFixed(2);
+            }
+            if (elR) {
+                const correctedR = this.rawRoll - (ProfileManager.data.calibration.roll || 0);
+                elR.innerText = correctedR.toFixed(2);
+            }
         }, 100);
     },
 
@@ -649,9 +656,17 @@ const app = {
     },
 
     saveCalibration() {
+        // Use current raw values as new zero
         ProfileManager.data.calibration.pitch = this.rawPitch || 0;
         ProfileManager.data.calibration.roll = this.rawRoll || 0;
         ProfileManager.save();
+
+        // Reset player in test environment to center
+        if (this.activeGame === 'TEST') {
+            this.playerX = 160;
+            this.playerY = 160;
+        }
+
         this.showNotification("Kalibracija shranjena!");
         this.closeCalibration();
     },
