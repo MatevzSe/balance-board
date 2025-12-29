@@ -289,11 +289,16 @@ const app = {
         }
         this.activeGame = gameMode;
 
+        // Button Visibility Logic (Do this before branching for TEST)
+        if (this.activeGame === 'TEST') {
+            document.getElementById('cal-btn')?.classList.remove('hidden');
+        } else {
+            document.getElementById('cal-btn')?.classList.add('hidden');
+        }
+
         // TEST Mode: Skip difficulty select
         if (gameMode === 'TEST') {
-            this.activeGame = 'TEST';
             this.startGame('MEDIUM'); // Default to medium for test
-            document.getElementById('diff-game-name').innerText = "Testno okolje";
             return;
         }
 
@@ -304,12 +309,6 @@ const app = {
         if (gameMode === 'SLALOM') title = "Smučarski Slalom";
 
         document.getElementById('diff-game-name').innerText = title;
-        if (this.activeGame === 'TEST') {
-            document.getElementById('cal-btn')?.classList.remove('hidden');
-        } else {
-            document.getElementById('cal-btn')?.classList.add('hidden');
-        }
-
         this.switchView('difficulty');
     },
 
@@ -319,9 +318,10 @@ const app = {
 
         // Reset Game Data
         this.score = 0;
-        this.timeLeft = 60; // 60s limit for all games as per user req
+        this.timeLeft = 60; // 60s limit for most games
         if (this.activeGame === 'HOLD') this.timeLeft = 30; // 30s limit for Hold
         if (this.activeGame === 'MAZE') this.timeLeft = 60; // 60s limit for Maze
+        if (this.activeGame === 'TEST') this.timeLeft = 600; // 10 min for Test/Calibration
 
         if (this.activeGame === 'MAZE') {
             this.playerX = 15; // Start in top-left cell 1,1 (10px wall + 5px margin)
