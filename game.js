@@ -456,8 +456,6 @@ const app = {
                 reasonText = (this.activeGame === 'SLALOM') ? "Napaka" : "Trk!";
             } else if (reason === 'QUIT') {
                 reasonText = "Igra prekinjena";
-            } else if (this.activeGame === 'MAZE') {
-                reasonText = "Labirint končan";
             } else if (this.activeGame === 'TEST') {
                 reasonText = "Test končan";
             } else if (this.activeGame === 'SLALOM') {
