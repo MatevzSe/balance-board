@@ -714,46 +714,62 @@ const app = {
         if (this.difficulty === 'HARD') speed = 1.25; // Faster (was 2.0)
 
         // Player Move Logic
-        let prevX = this.playerX;
-        let prevY = this.playerY;
+        const dx = this.inputRoll * speed;
+        const dy = this.inputPitch * speed;
 
         if (this.activeGame === 'SLALOM') {
             // Slalom: Only X moves. Y is fixed.
-            this.playerX += this.inputRoll * speed * 1.5;
-            // Keep player Y fixed
-            this.playerElem.style.top = this.playerY + 'px';
+            this.playerX += dx * 1.5;
+        } else if (this.activeGame === 'MAZE') {
+            // Sliding Collision Logic: Try X and Y movements independently
+            let prevX = this.playerX;
+            let prevY = this.playerY;
+
+            // Try X movement
+            let newX = prevX + dx;
+            // Boundary Check X
+            if (newX < 0) newX = 0;
+            if (newX > GAME_SIZE - PLAYER_SIZE) newX = GAME_SIZE - PLAYER_SIZE;
+
+            if (!MazeManager.checkCollision(newX, prevY)) {
+                this.playerX = newX;
+            }
+
+            // Try Y movement
+            let newY = prevY + dy;
+            // Boundary Check Y
+            if (newY < 0) newY = 0;
+            if (newY > GAME_SIZE - PLAYER_SIZE) newY = GAME_SIZE - PLAYER_SIZE;
+
+            if (!MazeManager.checkCollision(this.playerX, newY)) {
+                this.playerY = newY;
+            }
         } else {
-            // Normal 2D movement
-            this.playerX += this.inputRoll * speed;
-            this.playerY += this.inputPitch * speed;
-            this.playerElem.style.top = this.playerY + 'px';
+            // Normal 2D movement for COIN, HOLD, TEST
+            this.playerX += dx;
+            this.playerY += dy;
         }
 
-        // Boundary Checks
+        // Final Boundary Checks for all modes (SLALOM only needs X, but Y is safe to check)
         if (this.playerX < 0) this.playerX = 0;
         if (this.playerX > GAME_SIZE - PLAYER_SIZE) this.playerX = GAME_SIZE - PLAYER_SIZE;
         if (this.playerY < 0) this.playerY = 0;
         if (this.playerY > GAME_SIZE - PLAYER_SIZE) this.playerY = GAME_SIZE - PLAYER_SIZE;
 
+        // Apply visual position
         this.playerElem.style.left = this.playerX + 'px';
+        this.playerElem.style.top = this.playerY + 'px';
 
-        // Collision Logic
+        // Collision & Game Logic
         if (this.activeGame === 'COIN') {
             this.checkCoinCollision();
         } else if (this.activeGame === 'MAZE') {
-            if (MazeManager.checkCollision(this.playerX, this.playerY)) {
-                // Collision prevented: Revert position
-                this.playerX = prevX;
-                this.playerY = prevY;
-                this.playerElem.style.left = this.playerX + 'px';
-                this.playerElem.style.top = this.playerY + 'px';
-            }
+            MazeManager.checkGoal(this.playerX, this.playerY);
         } else if (this.activeGame === 'HOLD') {
             this.checkHoldLogic(1 / 60); // approx dt
         } else if (this.activeGame === 'SLALOM') {
             SlalomManager.update();
         }
-
         this.gameLoopId = requestAnimationFrame(() => this.gameLoop());
     },
 
@@ -1083,6 +1099,13 @@ const MazeManager = {
                 }
             }
         }
+        return false;
+    },
+
+    checkGoal(pX, pY) {
+        const margin = 4;
+        const c1 = Math.floor((pX + margin) / this.cellSize);
+        const r1 = Math.floor((pY + margin) / this.cellSize);
 
         // Check Goal
         // Goal is at 31,31 (logical 6,6)
@@ -1097,9 +1120,8 @@ const MazeManager = {
             app.playerX = 15; // 1*10 + margin
             app.playerY = 15;
             this.generate(app.level);
-            return false; // NOT a collision, so player move to 15,15 is key
+            return true;
         }
-
         return false;
     }
 };
