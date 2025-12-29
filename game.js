@@ -176,14 +176,13 @@ const app = {
     characteristic: null,
     isConnected: false,
 
-    // Battery
-    batteryLevel: -1,
-
-
     // Game State
-    activeGame: null, // 'COIN', 'MAZE', 'HOLD'
-    difficulty: 'MEDIUM', // 'EASY', 'MEDIUM', 'HARD'
+    activeGame: 'COIN',
     isPlaying: false,
+    difficulty: 'MEDIUM', // 'EASY', 'MEDIUM', 'HARD'
+    rawPitch: 0,
+    rawRoll: 0,
+    batteryLevel: 0,
     inputPitch: 0,
     inputRoll: 0,
 
@@ -667,8 +666,23 @@ const app = {
             this.playerY = 160;
         }
 
-        this.showNotification("Kalibracija shranjena!");
-        this.closeCalibration();
+        // Show success state on the button
+        const btn = document.querySelector('#calibration-modal button[onclick="app.saveCalibration()"]');
+        if (btn) {
+            const oldText = btn.innerText;
+            btn.innerText = "Ničelna točka nastavljena! ✓";
+            btn.classList.replace('bg-teal-600', 'bg-green-600');
+
+            setTimeout(() => {
+                btn.innerText = oldText;
+                btn.classList.replace('bg-green-600', 'bg-teal-600');
+                this.closeCalibration();
+                this.showNotification("Kalibracija shranjena!");
+            }, 1000);
+        } else {
+            this.showNotification("Kalibracija shranjena!");
+            this.closeCalibration();
+        }
     },
 
     resetCalibration() {
@@ -694,6 +708,7 @@ const app = {
 
             await this.characteristic.startNotifications();
             this.characteristic.addEventListener('characteristicvaluechanged', (e) => this.handleData(e));
+            this.device.addEventListener('gattserverdisconnected', () => this.onDisconnect());
 
             this.isConnected = true;
             document.getElementById('device-status').innerText = "Povezano";
@@ -710,8 +725,29 @@ const app = {
 
         } catch (error) {
             console.error(error);
-            alert("Povezava ni uspela");
+            document.getElementById('device-status').innerText = "Povezava ni uspela";
+            document.getElementById('device-status').className = "text-xs text-center text-rose-500 font-bold mb-2";
+            const btn = document.getElementById('connectBtn');
+            if (btn) btn.className = "w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200";
+            alert("Povezava ni uspela. Preverite, če je deska vklopljena.");
         }
+    },
+
+    onDisconnect() {
+        this.isConnected = false;
+        this.isPlaying = false;
+        cancelAnimationFrame(this.gameLoopId);
+
+        const connUI = document.getElementById('connection-ui');
+        if (connUI) connUI.classList.remove('hidden');
+
+        document.getElementById('device-status').innerText = "Deska se je odklopila";
+        document.getElementById('device-status').className = "text-xs text-center text-rose-500 font-bold mb-2";
+        const btn = document.getElementById('connectBtn');
+        if (btn) btn.className = "w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200";
+
+        this.showNotification("Deska se je odklopila!", 5000);
+        this.showMenu();
     },
 
     handleData(event) {
@@ -730,8 +766,8 @@ const app = {
         // Debug View Update
         const dbgPitch = document.getElementById('dbg-pitch');
         const dbgRoll = document.getElementById('dbg-roll');
-        if (dbgPitch) dbgPitch.innerText = pitchInt;
-        if (dbgRoll) dbgRoll.innerText = rollInt;
+        if (dbgPitch) dbgPitch.innerText = (pitchInt / 100.0).toFixed(2);
+        if (dbgRoll) dbgRoll.innerText = (rollInt / 100.0).toFixed(2);
 
         // Battery Parsing (Bytes 4-5) - only if packet is long enough
         if (value.byteLength >= 6) {

@@ -99,13 +99,15 @@
 
                 <!-- Live Data -->
                 <div class="bg-slate-50 p-4 rounded-2xl mb-8 flex justify-center gap-6">
-                    <div>
+                    <div class="w-20">
                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pitch</div>
-                        <div id="cal-pitch" class="text-xl font-mono font-bold text-teal-600">0.00</div>
+                        <div id="cal-pitch" class="text-xl font-mono font-bold text-teal-600 w-full text-center">0.00
+                        </div>
                     </div>
-                    <div>
+                    <div class="w-20">
                         <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Roll</div>
-                        <div id="cal-roll" class="text-xl font-mono font-bold text-teal-600">0.00</div>
+                        <div id="cal-roll" class="text-xl font-mono font-bold text-teal-600 w-full text-center">0.00
+                        </div>
                     </div>
                 </div>
 
@@ -158,9 +160,10 @@
             </header>
 
             <div id="connection-ui" class="pb-4 border-b border-slate-100 mb-2">
-                <div id="device-status" class="text-xs text-center text-slate-400 mb-2">Naprava nepovezana</div>
+                <div id="device-status" class="text-xs text-center text-rose-500 font-bold mb-2">Naprava nepovezana
+                </div>
                 <button id="connectBtn"
-                    class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl transition-all shadow-lg">
+                    class="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200">
                     Poveži ravnotežno desko
                 </button>
             </div>
@@ -304,8 +307,8 @@
             <!-- End Game Button -->
             <div class="flex flex-row items-center justify-center gap-4 mt-8">
                 <button id="cal-btn" onclick="app.openCalibration()"
-                    class="hidden px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-full text-sm font-bold tracking-wide transition transform hover:scale-105 shadow-md">
-                    ⚖️ KALIBRACIJA
+                    class="hidden px-6 py-3 bg-white/80 backdrop-blur-md border border-white/40 shadow-xl shadow-slate-200/50 text-slate-600 rounded-full text-sm font-bold tracking-wide transition transform hover:scale-105 hover:bg-white">
+                    KALIBRACIJA
                 </button>
                 <button onclick="app.endGameLogic(false, 'QUIT')"
                     class="px-6 py-3 bg-white/80 backdrop-blur-md border border-white/40 shadow-xl shadow-slate-200/50 text-slate-600 rounded-full text-sm font-bold tracking-wide transition transform hover:scale-105 hover:bg-white">
