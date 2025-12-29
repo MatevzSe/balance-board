@@ -25,6 +25,10 @@ const ProfileManager = {
             MAZE: 0,
             HOLD: 0,
             SLALOM: 0
+        },
+        calibration: { // [NEW] Zero offsets
+            pitch: 0,
+            roll: 0
         }
     },
 
@@ -50,6 +54,9 @@ const ProfileManager = {
                 // Ensure highScores struct exists if migrated
                 if (!this.data.highScores) {
                     this.data.highScores = { COIN: 0, MAZE: 0, HOLD: 0, SLALOM: 0 };
+                }
+                if (!this.data.calibration) {
+                    this.data.calibration = { pitch: 0, roll: 0 };
                 }
             } catch (e) {
                 console.error("Profile load error", e);
@@ -297,6 +304,12 @@ const app = {
         if (gameMode === 'SLALOM') title = "Smučarski Slalom";
 
         document.getElementById('diff-game-name').innerText = title;
+        if (this.activeGame === 'TEST') {
+            document.getElementById('cal-btn')?.classList.remove('hidden');
+        } else {
+            document.getElementById('cal-btn')?.classList.add('hidden');
+        }
+
         this.switchView('difficulty');
     },
 
@@ -614,6 +627,43 @@ const app = {
         this.coinIdleTime = 0;
     },
 
+    // --- CALIBRATION ---
+    openCalibration() {
+        const modal = document.getElementById('calibration-modal');
+        if (modal) modal.classList.remove('hidden');
+
+        // Start interval for live preview
+        if (this.calInterval) clearInterval(this.calInterval);
+        this.calInterval = setInterval(() => {
+            const elP = document.getElementById('cal-pitch');
+            const elR = document.getElementById('cal-roll');
+            if (elP) elP.innerText = (this.rawPitch || 0).toFixed(2);
+            if (elR) elR.innerText = (this.rawRoll || 0).toFixed(2);
+        }, 100);
+    },
+
+    closeCalibration() {
+        const modal = document.getElementById('calibration-modal');
+        if (modal) modal.classList.add('hidden');
+        if (this.calInterval) clearInterval(this.calInterval);
+    },
+
+    saveCalibration() {
+        ProfileManager.data.calibration.pitch = this.rawPitch || 0;
+        ProfileManager.data.calibration.roll = this.rawRoll || 0;
+        ProfileManager.save();
+        this.showNotification("Kalibracija shranjena!");
+        this.closeCalibration();
+    },
+
+    resetCalibration() {
+        ProfileManager.data.calibration.pitch = 0;
+        ProfileManager.data.calibration.roll = 0;
+        ProfileManager.save();
+        this.showNotification("Kalibracija ponastavljena na 0.");
+        this.closeCalibration();
+    },
+
     // BLUETOOTH
     async connectBluetooth() {
         try {
@@ -654,8 +704,13 @@ const app = {
         const pitchInt = value.getInt16(0, true);
         const rollInt = value.getInt16(2, true);
 
-        this.inputPitch = (pitchInt / 100.0);
-        this.inputRoll = (rollInt / 100.0);
+        // Store raw for calibration view
+        this.rawPitch = (pitchInt / 100.0);
+        this.rawRoll = (rollInt / 100.0);
+
+        // Apply Calibration
+        this.inputPitch = this.rawPitch - (ProfileManager.data.calibration.pitch || 0);
+        this.inputRoll = this.rawRoll - (ProfileManager.data.calibration.roll || 0);
 
         // Debug View Update
         const dbgPitch = document.getElementById('dbg-pitch');

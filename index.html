@@ -259,11 +259,16 @@
             </div>
 
             <!-- End Game Button -->
-            <!-- End Game Button -->
-            <button onclick="app.endGameLogic(false, 'QUIT')"
-                class="px-8 py-3 bg-white/80 backdrop-blur-md border border-white/40 shadow-xl shadow-slate-200/50 text-slate-600 rounded-full text-sm font-bold tracking-wide transition transform hover:scale-105 hover:bg-white mt-8">
-                KONČAJ VAJO
-            </button>
+            <div class="flex flex-col items-center gap-4 mt-8">
+                <button id="cal-btn" onclick="app.openCalibration()"
+                    class="hidden px-8 py-3 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 rounded-full text-sm font-bold tracking-wide transition transform hover:scale-105">
+                    ⚖️ KALIBRACIJA
+                </button>
+                <button onclick="app.endGameLogic(false, 'QUIT')"
+                    class="px-8 py-3 bg-white/80 backdrop-blur-md border border-white/40 shadow-xl shadow-slate-200/50 text-slate-600 rounded-full text-sm font-bold tracking-wide transition transform hover:scale-105 hover:bg-white">
+                    KONČAJ VAJO
+                </button>
+            </div>
         </div>
 
         <!-- ==================== VIEW: PROFILE (PROFIL) ==================== -->
