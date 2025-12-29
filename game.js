@@ -194,6 +194,7 @@ const app = {
     gameLoopId: null,
     timerId: null,
     level: 1, // Current level
+    gameDuration: 0, // Total seconds played in current session
 
     // Specific Mode Vars
     coinsCollected: 0,
@@ -331,6 +332,7 @@ const app = {
         }
         this.isPlaying = true;
         this.level = 1;
+        this.gameDuration = 0;
 
         // Mode Specific Resets
         this.coinsCollected = 0;
@@ -379,7 +381,9 @@ const app = {
         // Start Timer
         if (this.timerId) clearInterval(this.timerId);
         this.timerId = setInterval(() => {
-            // Skiing: No timer
+            this.gameDuration++;
+
+            // Skiing: No timer HUD update or countdown
             if (this.activeGame === 'SLALOM') return;
 
             this.timeLeft--;
@@ -446,12 +450,12 @@ const app = {
         }
 
         // Save Stats
-        if (this.score > 0) {
+        if (this.score > 0 && this.activeGame !== 'TEST') {
             ProfileManager.addSession({
                 game: this.activeGame === 'COIN' ? "Kovanci" : (this.activeGame === 'MAZE' ? "Labirint" : (this.activeGame === 'SLALOM' ? "Slalom" : "Drži sredino")),
                 diff: this.difficulty,
                 score: this.score,
-                time: 120 - this.timeLeft,
+                time: this.gameDuration,
                 coins: this.coinsCollected,
                 mazes: this.activeGame === 'MAZE' ? Math.floor(this.score / 100) : 0
             });
