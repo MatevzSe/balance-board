@@ -186,6 +186,7 @@ const app = {
     displayedBatteryLevel: null,
     lastBatteryUpdateTimestamp: 0,
     isBatteryCharging: false,
+    simInterval: null,
     inputPitch: 0,
     inputRoll: 0,
 
@@ -755,6 +756,58 @@ const app = {
 
         this.showNotification("Deska se je odklopila!", 5000);
         this.showMenu();
+    },
+
+    // SIMULATION
+    startSimulation() {
+        if (this.simInterval) clearInterval(this.simInterval);
+
+        this.isConnected = true;
+        document.getElementById('device-status').innerText = "Simulacija aktivna";
+        document.getElementById('device-status').className = "text-center mb-2 text-teal-600 font-bold";
+
+        const connUI = document.getElementById('connection-ui');
+        if (connUI) connUI.classList.add('hidden');
+
+        const batLabel = document.getElementById('battery-label-text');
+        if (batLabel) batLabel.innerText = "Simulacija";
+
+        this.simInterval = setInterval(() => {
+            // Simulate 52-55% battery
+            const bat = 52 + Math.floor(Math.random() * 4);
+
+            // User requested Pitch 0.1 and Roll -0.2
+            this.rawPitch = 0.1;
+            this.rawRoll = -0.2;
+
+            // Apply Calibration (so it feels real if they calibrate)
+            this.inputPitch = this.rawPitch - (ProfileManager.data.calibration.pitch || 0);
+            this.inputRoll = this.rawRoll - (ProfileManager.data.calibration.roll || 0);
+
+            // Update Debug UI
+            const dbgPitch = document.getElementById('dbg-pitch');
+            const dbgRoll = document.getElementById('dbg-roll');
+            const dbgBat = document.getElementById('dbg-bat');
+            const dbgBatPerc = document.getElementById('dbg-bat-perc');
+
+            if (dbgPitch) dbgPitch.innerText = this.rawPitch.toFixed(2);
+            if (dbgRoll) dbgRoll.innerText = this.rawRoll.toFixed(2);
+            if (dbgBat) dbgBat.innerText = bat;
+            if (dbgBatPerc) dbgBatPerc.innerText = bat + '%';
+
+            this.processBatteryLevel(bat);
+        }, 1000);
+
+        this.showNotification("Simulacija povezave zagnana.");
+    },
+
+    stopSimulation() {
+        if (this.simInterval) {
+            clearInterval(this.simInterval);
+            this.simInterval = null;
+            this.onDisconnect();
+            this.showNotification("Simulacija ustavljena.");
+        }
     },
 
     handleData(event) {

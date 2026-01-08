@@ -42,12 +42,19 @@
 
         <!-- DEBUG VIEW (Persistent - Bottom Left) -->
         <div id="debug-view"
-            class="absolute bottom-4 left-4 z-40 p-2 bg-black/70 backdrop-blur text-white text-[10px] font-mono rounded-lg pointer-events-none opacity-80 max-w-[150px]">
+            class="absolute bottom-4 left-4 z-40 p-2 bg-black/70 backdrop-blur text-white text-[10px] font-mono rounded-lg opacity-80 max-w-[150px]">
             <div>RAW DATA</div>
             <div>Pitch: <span id="dbg-pitch">0</span></div>
             <div>Roll: <span id="dbg-roll">0</span></div>
             <div>BatRaw: <span id="dbg-bat">0</span></div>
             <div>Bat%: <span id="dbg-bat-perc">0</span></div>
+            <div class="mt-2 flex flex-col gap-1 pointer-events-auto">
+                <button onclick="app.startSimulation()"
+                    class="bg-teal-600 hover:bg-teal-500 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors">Fake
+                    Connect</button>
+                <button onclick="app.stopSimulation()"
+                    class="bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors">Disconnect</button>
+            </div>
         </div>
 
         <!-- NOTIFICATION TOAST -->
