@@ -801,6 +801,46 @@ const app = {
         this.showNotification("Simulacija povezave zagnana.");
     },
 
+    startChargingSimulation() {
+        if (this.simInterval) clearInterval(this.simInterval);
+
+        this.isConnected = true;
+        document.getElementById('device-status').innerText = "Simulacija: Polnjenje";
+        document.getElementById('device-status').className = "text-center mb-2 text-indigo-600 font-bold";
+
+        const connUI = document.getElementById('connection-ui');
+        if (connUI) connUI.classList.add('hidden');
+
+        const batLabel = document.getElementById('battery-label-text');
+        if (batLabel) batLabel.innerText = "Simulacija";
+
+        this.simInterval = setInterval(() => {
+            // Simulate charging state (-1)
+            const bat = -1;
+
+            this.rawPitch = 0.0; // Stationary while charging
+            this.rawRoll = 0.0;
+
+            this.inputPitch = 0;
+            this.inputRoll = 0;
+
+            // Update Debug UI
+            const dbgPitch = document.getElementById('dbg-pitch');
+            const dbgRoll = document.getElementById('dbg-roll');
+            const dbgBat = document.getElementById('dbg-bat');
+            const dbgBatPerc = document.getElementById('dbg-bat-perc');
+
+            if (dbgPitch) dbgPitch.innerText = "0.00";
+            if (dbgRoll) dbgRoll.innerText = "0.00";
+            if (dbgBat) dbgBat.innerText = bat;
+            if (dbgBatPerc) dbgBatPerc.innerText = 'CHG';
+
+            this.processBatteryLevel(bat);
+        }, 1000);
+
+        this.showNotification("Simulacija polnjenja zagnana.");
+    },
+
     stopSimulation() {
         if (this.simInterval) {
             clearInterval(this.simInterval);
