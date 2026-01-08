@@ -183,6 +183,9 @@ const app = {
     rawPitch: 0,
     rawRoll: 0,
     batteryLevel: 0,
+    displayedBatteryLevel: null,
+    lastBatteryUpdateTimestamp: 0,
+    isBatteryCharging: false,
     inputPitch: 0,
     inputRoll: 0,
 
@@ -783,11 +786,54 @@ const app = {
             if (dbgBat) dbgBat.innerText = batteryInt;
             if (dbgBatPerc) dbgBatPerc.innerText = batteryInt + '%';
 
-            // Only update DOM if value changed to save resources
-            if (batteryInt !== this.batteryLevel) {
-                this.batteryLevel = batteryInt;
+            this.processBatteryLevel(batteryInt);
+        }
+    },
+
+    processBatteryLevel(rawLevel) {
+        const now = Date.now();
+        const TWO_MINUTES_MS = 2 * 60 * 1000;
+
+        if (rawLevel === -1) {
+            // Charging state
+            if (!this.isBatteryCharging) {
+                this.isBatteryCharging = true;
+                this.displayedBatteryLevel = null; // Reset so it updates immediately when unplugged
                 this.updateBatteryUI();
             }
+            return;
+        }
+
+        // Not charging
+        if (this.isBatteryCharging) {
+            this.isBatteryCharging = false;
+            // Immediate update after charging
+            this.batteryLevel = rawLevel;
+            this.displayedBatteryLevel = rawLevel;
+            this.lastBatteryUpdateTimestamp = now;
+            this.updateBatteryUI();
+            return;
+        }
+
+        this.batteryLevel = rawLevel;
+
+        // First reading
+        if (this.displayedBatteryLevel === null) {
+            this.displayedBatteryLevel = rawLevel;
+            this.lastBatteryUpdateTimestamp = now;
+            this.updateBatteryUI();
+            return;
+        }
+
+        // Check if 2 minutes passed
+        if (now - this.lastBatteryUpdateTimestamp >= TWO_MINUTES_MS) {
+            // Only update if it falls
+            if (rawLevel < this.displayedBatteryLevel) {
+                this.displayedBatteryLevel = rawLevel;
+                this.updateBatteryUI();
+            }
+            // Always reset timer after 2 mins to keep the window moving
+            this.lastBatteryUpdateTimestamp = now;
         }
     },
 
@@ -798,24 +844,30 @@ const app = {
 
         if (!indicator || !levelText || !fill) return;
 
-        // Show indicator if we have valid data
-        if (this.batteryLevel >= 0) {
+        // Show indicator if we have valid data or charging
+        if (this.isBatteryCharging || this.displayedBatteryLevel !== null) {
             indicator.classList.remove('opacity-0');
         } else {
             indicator.classList.add('opacity-0');
             return;
         }
 
-        levelText.innerText = this.batteryLevel + '%';
-        fill.style.width = this.batteryLevel + '%';
-
-        // Color Logic
-        if (this.batteryLevel > 50) {
-            fill.className = "h-full bg-teal-500 rounded-sm transition-all duration-500";
-        } else if (this.batteryLevel > 20) {
-            fill.className = "h-full bg-yellow-500 rounded-sm transition-all duration-500";
+        if (this.isBatteryCharging) {
+            levelText.innerText = "Polnjenje...";
+            fill.style.width = '100%';
+            fill.className = "h-full bg-teal-500 rounded-sm animate-pulse transition-all duration-500";
         } else {
-            fill.className = "h-full bg-red-500 rounded-sm animate-pulse transition-all duration-500";
+            levelText.innerText = this.displayedBatteryLevel + '%';
+            fill.style.width = this.displayedBatteryLevel + '%';
+
+            // Color Logic
+            if (this.displayedBatteryLevel > 50) {
+                fill.className = "h-full bg-teal-500 rounded-sm transition-all duration-500";
+            } else if (this.displayedBatteryLevel > 20) {
+                fill.className = "h-full bg-yellow-500 rounded-sm transition-all duration-500";
+            } else {
+                fill.className = "h-full bg-red-500 rounded-sm animate-pulse transition-all duration-500";
+            }
         }
     },
 
