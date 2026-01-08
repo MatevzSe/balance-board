@@ -9,13 +9,20 @@ const ASSETS = [
     'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap'
 ];
 
-// Install event - caching assets
+// Install event - caching assets with individual error logging
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('[Service Worker] Caching all: app shell and content');
-                return cache.addAll(ASSETS);
+            .then(async (cache) => {
+                console.log('[Service Worker] Caching app shell and content');
+                for (const asset of ASSETS) {
+                    try {
+                        await cache.add(asset);
+                        console.log(`[Service Worker] Cached: ${asset}`);
+                    } catch (err) {
+                        console.error(`[Service Worker] Failed to cache: ${asset}`, err);
+                    }
+                }
             })
     );
 });
