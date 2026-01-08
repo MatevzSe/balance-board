@@ -805,7 +805,7 @@ const app = {
         if (this.simInterval) clearInterval(this.simInterval);
 
         this.isConnected = true;
-        document.getElementById('device-status').innerText = "Simulacija: Polnjenje";
+        document.getElementById('device-status').innerText = "Simulacija: ⚡";
         document.getElementById('device-status').className = "text-center mb-2 text-indigo-600 font-bold";
 
         const connUI = document.getElementById('connection-ui');
@@ -946,7 +946,7 @@ const app = {
         }
 
         if (this.isBatteryCharging) {
-            levelText.innerText = "Polnjenje...";
+            levelText.innerText = "⚡";
             fill.style.width = '100%';
             fill.className = "h-full bg-teal-500 rounded-sm animate-pulse transition-all duration-500";
         } else {
