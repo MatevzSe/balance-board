@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Balance Smart Board</title>
+    <title>Smart Balance Board</title>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d9488">
@@ -144,6 +144,14 @@
         <!-- ==================== VIEW: MAIN MENU (JEDILNIK) ==================== -->
         <div id="view-menu"
             class="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-6 flex flex-col gap-6 transition-all">
+            <!-- Install PWA Button (Hidden by default) -->
+            <div id="install-ui" class="hidden pb-4 border-b border-slate-100 mb-2">
+                <button id="installBtn"
+                    class="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                    <span>📲</span> Namesti aplikacijo
+                </button>
+            </div>
+
             <header class="w-full flex justify-center pt-2 pb-0 mb-0">
                 <img src="logo_header.png" alt="Smart Balance Board" class="w-full max-w-[320px] h-auto drop-shadow-sm">
             </header>
@@ -157,13 +165,6 @@
                 </button>
             </div>
 
-            <!-- Install PWA Button (Hidden by default) -->
-            <div id="install-ui" class="hidden pb-4 border-b border-slate-100 mb-2">
-                <button id="installBtn"
-                    class="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
-                    <span>📲</span> Namesti aplikacijo
-                </button>
-            </div>
 
             <!-- Fancy Profile Button -->
             <button onclick="app.showProfile()"

@@ -1,6 +1,6 @@
 {
-  "name": "Balance Smart Board",
-  "short_name": "BalanceBoard",
+  "name": "Smart Balance Board",
+  "short_name": "Smart Balance Board",
   "description": "Training and games for the smart balance board.",
   "id": "/balance-board/",
   "start_url": "./",
