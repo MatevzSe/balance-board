@@ -22,10 +22,10 @@
     <!-- Decorative Background -->
     <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 bg-gradient-to-br from-teal-50 to-slate-100">
         <div
-            class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-teal-100/50 rounded-full blur-3xl mix-blend-multiply filter opacity-70 animate-blob">
+            class="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] bg-teal-100/40 rounded-full blur-3xl mix-blend-multiply filter opacity-40 animate-blob">
         </div>
         <div
-            class="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-orange-100/50 rounded-full blur-3xl mix-blend-multiply filter opacity-70 animate-blob animation-delay-2000">
+            class="absolute -bottom-[10%] -right-[10%] w-[50%] h-[50%] bg-indigo-100/40 rounded-full blur-3xl mix-blend-multiply filter opacity-40 animate-blob animation-delay-2000">
         </div>
     </div>
 
@@ -61,6 +61,10 @@
                     Charging</button>
                 <button onclick="app.stopSimulation()"
                     class="bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors">Disconnect</button>
+                <button onclick="app.resetProfile()"
+                    class="bg-yellow-600 hover:bg-yellow-500 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors mt-1">Reset History</button>
+                <button onclick="localStorage.removeItem('onboarding_seen');app.showOnboarding()"
+                    class="bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors">Show Onboarding</button>
             </div>
         </div>
 
@@ -73,12 +77,21 @@
         <div id="game-over-modal"
             class="hidden absolute inset-0 z-[60] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
             <div
-                class="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full text-center border-4 border-white transform transition-all scale-100">
-                <div class="text-4xl mb-2">🏁</div>
+                class="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full text-center border-4 border-white transform transition-all scale-100 relative">
+                <button onclick="app.closeGameOver()"
+                    class="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+
+                <div class="w-14 h-14 rounded-full bg-teal-50 text-teal-500 flex items-center justify-center mx-auto mb-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
+                </div>
                 <h2 class="text-2xl font-bold text-slate-800 mb-1">Konec igre</h2>
                 <div class="text-slate-500 text-sm mb-6" id="go-reason">Čas je potekel</div>
 
-                <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="grid grid-cols-2 gap-4">
                     <div class="bg-teal-50 p-4 rounded-2xl">
                         <div class="text-xs font-bold text-teal-400 uppercase tracking-widest">Točke</div>
                         <div class="text-3xl font-bold text-teal-700" id="go-score">0</div>
@@ -88,11 +101,6 @@
                         <div class="text-3xl font-bold text-indigo-700" id="go-level">1</div>
                     </div>
                 </div>
-
-                <button onclick="app.closeGameOver()"
-                    class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all shadow-lg">
-                    Nazaj na meni
-                </button>
             </div>
         </div>
 
@@ -101,14 +109,28 @@
             class="hidden absolute inset-0 z-[60] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
             <div
                 class="bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full text-center border-4 border-white transform transition-all scale-100">
-                <div class="text-4xl mb-4">⚖️</div>
+                <div class="w-14 h-14 rounded-full bg-teal-50 text-teal-500 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>
+                </div>
                 <h2 class="text-2xl font-bold text-slate-800 mb-4">Kalibracija</h2>
 
-                <div class="text-slate-600 text-sm mb-6 space-y-4 text-left">
-                    <p>1. Postavite desko na <strong>ravno</strong> podlago.</p>
-                    <p>2. Stopite z deske in počakajte, da se vrednosti umirijo (v prib. 5s).</p>
-                    <p>3. Vrednosti se ne smejo spreminjati za več kot 0.3 decimalnega mesta.</p>
-                    <p>4. Pritisnite gumb spodaj za nastavitev ničelne točke.</p>
+                <div class="text-slate-600 text-sm mb-6 space-y-3 text-left">
+                    <div class="flex gap-3 items-start">
+                        <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                        <span>Postavite desko na <strong>ravno</strong> podlago.</span>
+                    </div>
+                    <div class="flex gap-3 items-start">
+                        <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                        <span>Stopite z deske in počakajte, da se vrednosti umirijo (v prib. 5s).</span>
+                    </div>
+                    <div class="flex gap-3 items-start">
+                        <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                        <span>Vrednosti se ne smejo spreminjati za več kot 0.3 decimalnega mesta.</span>
+                    </div>
+                    <div class="flex gap-3 items-start">
+                        <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">4</span>
+                        <span>Pritisnite <strong>Potrdi kalibracijo</strong> za nastavitev ničelne točke.</span>
+                    </div>
                 </div>
 
                 <!-- Live Data -->
@@ -148,97 +170,120 @@
             <div id="install-ui" class="hidden pb-4 border-b border-slate-100 mb-2">
                 <button id="installBtn"
                     class="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
-                    <span>📲</span> Namesti aplikacijo
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                    Namesti aplikacijo
                 </button>
             </div>
 
             <header class="w-full flex justify-center pt-2 pb-0 mb-0">
-                <img src="logo_header.png" alt="Smart Balance Board" class="w-full max-w-[320px] h-auto drop-shadow-sm">
+                <div class="flex items-center gap-3 select-none">
+                    <img src="logo.svg" class="h-9 w-auto shrink-0" alt="">
+                    <div class="flex items-center gap-2">
+                        <span class="font-['Poppins'] font-light text-sm tracking-[0.2em] text-slate-600">SMART</span>
+                        <span class="font-['Poppins'] font-light text-sm tracking-[0.2em] text-slate-600">BALANCE BOARD</span>
+                    </div>
+                </div>
             </header>
 
             <div id="connection-ui" class="pb-4 border-b border-slate-100 mb-2">
-                <div id="device-status" class="text-xs text-center text-rose-500 font-bold mb-2">Naprava nepovezana
+                <div id="device-status" class="text-xs text-center text-slate-400 font-bold mb-2">Naprava nepovezana
                 </div>
                 <button id="connectBtn"
-                    class="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200">
+                    class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200">
                     Poveži ravnotežno desko
                 </button>
             </div>
 
 
-            <!-- Fancy Profile Button -->
-            <button onclick="app.showProfile()"
-                class="w-full py-4 bg-[#0D9488] hover:bg-[#0D7A70] text-white font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left shadow-lg">
-                <div
-                    class="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center text-xl group-hover:scale-110 transition">
-                    📈</div>
-                <div>
-                    <div class="font-bold">Tvoj napredek</div>
-                    <div class="text-xs text-teal-100">
-                        <span id="menu-total-score">0</span> točk • Klikni za profil
+            <!-- Compact Progress Strip -->
+            <div class="bg-slate-50 rounded-2xl border border-slate-100 flex overflow-hidden">
+                <div class="flex-1 p-4">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Tvoj napredek</div>
+                    <div class="flex justify-around items-center">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-slate-700" id="menu-total-score">0</div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wide">Točke</div>
+                        </div>
+                        <div class="w-px h-8 bg-slate-200"></div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-slate-700" id="menu-games-played">0</div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wide">Igre</div>
+                        </div>
+                        <div class="w-px h-8 bg-slate-200"></div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-slate-700" id="menu-play-time">0</div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wide">Minut</div>
+                        </div>
                     </div>
                 </div>
-            </button>
+                <button onclick="app.showProfile()"
+                    class="border-l border-slate-200 px-4 flex items-center justify-center text-slate-300 hover:bg-slate-100 hover:text-teal-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            </div>
 
             <div class="space-y-3">
-                <!-- Simple Test Button -->
-                <button onclick="app.selectGame('TEST')"
-                    class="w-full py-4 bg-white hover:bg-teal-50 border-2 border-slate-100 hover:border-teal-200 text-teal-800 font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left mb-4">
-                    <div
-                        class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
-                        🛠️</div>
-                    <div>
-                        <div class="font-bold">Testno okolje</div>
-                        <div class="text-xs text-slate-400">Preizkus senzorjev • Kalibracija</div>
-                    </div>
-                </button>
-
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 ml-2">Izberi
                     aktivnost</label>
 
                 <button onclick="app.selectGame('HOLD')"
                     class="w-full py-4 bg-white hover:bg-teal-50 border-2 border-slate-100 hover:border-teal-200 text-teal-800 font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left">
-                    <div
-                        class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
-                        🎯</div>
+                    <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center group-hover:scale-110 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M7.5 3.75H6C4.75736 3.75 3.75 4.75736 3.75 6V7.5M16.5 3.75H18C19.2426 3.75 20.25 4.75736 20.25 6V7.5M20.25 16.5V18C20.25 19.2426 19.2426 20.25 18 20.25H16.5M7.5 20.25H6C4.75736 20.25 3.75 19.2426 3.75 18V16.5M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z"/></svg>
+                    </div>
                     <div>
                         <div class="font-bold">Drži sredino</div>
-                        <div class="text-xs text-slate-400">5 sekund • Vzdržljivost</div>
+                        <div class="text-xs text-slate-400">Propriocepcija • Stabilnost trupa</div>
                     </div>
                 </button>
 
                 <button onclick="app.selectGame('SLALOM')"
                     class="w-full py-4 bg-white hover:bg-teal-50 border-2 border-slate-100 hover:border-teal-200 text-teal-800 font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left">
-                    <div
-                        class="w-10 h-10 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
-                        ⛷️</div>
+                    <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center group-hover:scale-110 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M21 20H4C2 20 2 14 4 14H19C21 14 21 8 19 8H9V2M6 5L9 2L12 5"/></svg>
+                    </div>
                     <div>
                         <div class="font-bold">Smučanje</div>
-                        <div class="text-xs text-slate-400">Slalom • Refleks</div>
+                        <div class="text-xs text-slate-400">Koordinacija • Hitri refleksi</div>
                     </div>
                 </button>
 
                 <button onclick="app.selectGame('COIN')"
                     class="w-full py-4 bg-white hover:bg-teal-50 border-2 border-slate-100 hover:border-teal-200 text-teal-800 font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left">
-                    <div
-                        class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
-                        🪙</div>
+                    <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center group-hover:scale-110 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M19 7a3 3 0 11-6 0 3 3 0 016 0zM4.5 19.5L10.5 12.5M6 13L10.5 12.5L11 17"/></svg>
+                    </div>
                     <div>
                         <div class="font-bold">Lov za kovanci</div>
-                        <div class="text-xs text-slate-400">10 kovancev • Hitrost</div>
+                        <div class="text-xs text-slate-400">Dinamično ravnotežje • Agilnost</div>
                     </div>
                 </button>
 
                 <button onclick="app.selectGame('MAZE')"
                     class="w-full py-4 bg-white hover:bg-teal-50 border-2 border-slate-100 hover:border-teal-200 text-teal-800 font-medium rounded-xl transition-all flex items-center px-4 gap-4 group text-left">
-                    <div
-                        class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
-                        🌀</div>
+                    <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center group-hover:scale-110 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M6 21V3M18 21V3M12 3V19M9 16L12 19L15 16"/></svg>
+                    </div>
                     <div>
                         <div class="font-bold">Zen labirint</div>
-                        <div class="text-xs text-slate-400">Najdi pot • Fokus</div>
+                        <div class="text-xs text-slate-400">Fokus • Kognitivna vadba</div>
                     </div>
                 </button>
+
+                <div class="pt-3 border-t border-slate-100">
+                    <button onclick="app.selectGame('TEST')"
+                        class="w-full py-3 bg-transparent hover:bg-slate-50 border border-dashed border-slate-200 text-slate-400 hover:text-slate-600 rounded-xl transition-all flex items-center px-4 gap-3 group text-left">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center group-hover:scale-110 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"/></svg>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium">Testno okolje</div>
+                            <div class="text-xs text-slate-400">Preizkus senzorjev • Kalibracija</div>
+                        </div>
+                    </button>
+                </div>
             </div>
 
 
@@ -247,28 +292,46 @@
         <!-- ==================== VIEW: DIFFICULTY SELECT (TEŽAVNOST) ==================== -->
         <div id="view-difficulty"
             class="hidden w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 p-8 flex flex-col gap-6">
-            <header class="text-center">
-                <h2 class="text-2xl font-semibold text-slate-700">Izberi težavnost</h2>
-                <p class="text-sm text-slate-500 mt-1">Igra: <span id="diff-game-name"
-                        class="font-bold text-teal-600">Igra</span></p>
+            <header class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div id="diff-game-icon" class="w-10 h-10 rounded-full flex items-center justify-center shrink-0"></div>
+                    <h2 class="text-2xl font-semibold text-slate-700">Izberi težavnost</h2>
+                </div>
+                <button onclick="app.showMenu()"
+                    class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors shrink-0 ml-4">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
             </header>
 
             <div class="space-y-3">
-                <button onclick="app.startGame('EASY')"
-                    class="w-full py-4 bg-teal-50 hover:bg-teal-100 text-teal-800 font-medium rounded-xl transition-all">
-                    🌱 Lahko <span class="text-xs opacity-60 block">Počasen tempo</span>
+                <button id="diff-btn-easy" onclick="app.startGame('EASY')"
+                    class="w-full py-4 bg-teal-50 hover:bg-teal-100 text-teal-800 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left">
+                    <svg width="48" height="16" viewBox="0 0 36 12" fill="currentColor" class="shrink-0"><path d="M6 1L7.2 4.4L10.8 4.5L7.9 6.6L8.9 10.1L6 8L3.1 10.1L4.1 6.6L1.2 4.5L4.8 4.4Z"/><path d="M18 1L19.2 4.4L22.8 4.5L19.9 6.6L20.9 10.1L18 8L15.1 10.1L16.1 6.6L13.2 4.5L16.8 4.4Z" opacity="0.2"/><path d="M30 1L31.2 4.4L34.8 4.5L31.9 6.6L32.9 10.1L30 8L27.1 10.1L28.1 6.6L25.2 4.5L28.8 4.4Z" opacity="0.2"/></svg>
+                    <div>
+                        <div class="font-semibold">Lahko</div>
+                        <span id="diff-easy-desc" class="text-xs text-teal-600/60 block">Počasen tempo</span>
+                    </div>
                 </button>
-                <button onclick="app.startGame('MEDIUM')"
-                    class="w-full py-4 bg-teal-100 hover:bg-teal-200 text-teal-900 font-medium rounded-xl transition-all">
-                    🌿 Srednje <span class="text-xs opacity-60 block">Normalna hitrost</span>
+                <button id="diff-btn-medium" onclick="app.startGame('MEDIUM')"
+                    class="w-full py-4 bg-teal-100 hover:bg-teal-200 text-teal-900 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left">
+                    <svg width="48" height="16" viewBox="0 0 36 12" fill="currentColor" class="shrink-0"><path d="M6 1L7.2 4.4L10.8 4.5L7.9 6.6L8.9 10.1L6 8L3.1 10.1L4.1 6.6L1.2 4.5L4.8 4.4Z"/><path d="M18 1L19.2 4.4L22.8 4.5L19.9 6.6L20.9 10.1L18 8L15.1 10.1L16.1 6.6L13.2 4.5L16.8 4.4Z"/><path d="M30 1L31.2 4.4L34.8 4.5L31.9 6.6L32.9 10.1L30 8L27.1 10.1L28.1 6.6L25.2 4.5L28.8 4.4Z" opacity="0.2"/></svg>
+                    <div>
+                        <div class="font-semibold">Srednje</div>
+                        <span id="diff-medium-desc" class="text-xs text-teal-700/60 block">Normalna hitrost</span>
+                    </div>
                 </button>
-                <button onclick="app.startGame('HARD')"
-                    class="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200">
-                    🔥 Težko <span class="text-xs opacity-80 block">Visoka hitrost in natančnost</span>
+                <button id="diff-btn-hard" onclick="app.startGame('HARD')"
+                    class="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200 flex items-center px-5 gap-4 text-left">
+                    <svg width="48" height="16" viewBox="0 0 36 12" fill="currentColor" class="shrink-0"><path d="M6 1L7.2 4.4L10.8 4.5L7.9 6.6L8.9 10.1L6 8L3.1 10.1L4.1 6.6L1.2 4.5L4.8 4.4Z"/><path d="M18 1L19.2 4.4L22.8 4.5L19.9 6.6L20.9 10.1L18 8L15.1 10.1L16.1 6.6L13.2 4.5L16.8 4.4Z"/><path d="M30 1L31.2 4.4L34.8 4.5L31.9 6.6L32.9 10.1L30 8L27.1 10.1L28.1 6.6L25.2 4.5L28.8 4.4Z"/></svg>
+                    <div>
+                        <div class="font-semibold">Težko</div>
+                        <span id="diff-hard-desc" class="text-xs text-white/70 block">Visoka hitrost in natančnost</span>
+                    </div>
                 </button>
             </div>
 
-            <button onclick="app.showMenu()" class="text-slate-400 text-sm hover:text-slate-600">Nazaj na meni</button>
         </div>
 
         <!-- ==================== VIEW: GAME BOARD (IGRA) ==================== -->
@@ -320,14 +383,10 @@
             class="hidden w-full max-w-md bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 flex flex-col gap-6 max-h-[85vh]">
 
             <!-- Header -->
-            <div
-                class="p-6 border-b border-slate-100 flex justify-between items-center bg-white/50 rounded-t-3xl shrink-0">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-800">Tvoj napredek</h2>
-                </div>
+            <div class="px-4 pt-3 pb-0 flex justify-end bg-white/50 rounded-t-3xl shrink-0">
                 <button onclick="app.showMenu()"
                     class="p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors">
-                    <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                         </path>
                     </svg>
@@ -335,21 +394,20 @@
             </div>
 
             <!-- Content -->
-            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <div class="flex-1 overflow-y-auto px-6 pb-6 pt-2 space-y-5">
 
-                <!-- EXPERIENCE CARD -->
-                <div class="bg-[#0D9488] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden shrink-0">
-                    <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">🏆</div>
+                <!-- RANK CARD -->
+                <div class="bg-[#0D9488] rounded-2xl p-5 text-white shadow-lg relative overflow-hidden shrink-0">
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>
+                    </div>
                     <div class="relative z-10">
-                        <h3 class="text-3xl font-extrabold mb-4" id="profile-rank-title">Začetnik</h3>
-
-                        <!-- Progress Bar -->
-                        <div class="w-full bg-black/20 rounded-full h-4 mb-2 overflow-hidden">
-                            <div id="profile-rank-bar"
-                                class="bg-yellow-400 h-full rounded-full transition-all duration-1000"
-                                style="width: 0%"></div>
+                        <div class="text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Rang</div>
+                        <h3 class="text-3xl font-extrabold mb-3" id="profile-rank-title">Začetnik</h3>
+                        <div class="w-full bg-black/20 rounded-full h-2 mb-1.5 overflow-hidden">
+                            <div id="profile-rank-bar" class="bg-white/80 h-full rounded-full transition-all duration-1000" style="width: 0%"></div>
                         </div>
-                        <div class="flex justify-between text-xs text-indigo-100 font-mono">
+                        <div class="flex justify-between text-xs text-white/60 font-mono">
                             <span id="profile-xp-current">0</span>
                             <span id="profile-xp-next">100</span>
                         </div>
@@ -357,54 +415,156 @@
                 </div>
 
                 <!-- KEY STATS -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div class="text-slate-400 text-xs font-bold uppercase mb-1">Skupaj točk</div>
-                        <div class="text-2xl font-bold text-slate-800" id="profile-total-score">0</div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                        <div class="text-xl font-bold text-slate-800" id="profile-total-score">0</div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wide mt-0.5">Točke</div>
                     </div>
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div class="text-slate-400 text-xs font-bold uppercase mb-1">Odigranih iger</div>
-                        <div class="text-2xl font-bold text-slate-800" id="profile-games">0</div>
+                    <div class="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                        <div class="text-xl font-bold text-slate-800" id="profile-games">0</div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-wide mt-0.5">Igre</div>
+                    </div>
+                    <div class="bg-teal-50 rounded-xl p-3 text-center border border-teal-100">
+                        <div class="text-xl font-bold text-teal-700" id="profile-time">0</div>
+                        <div class="text-[10px] text-teal-500 uppercase tracking-wide mt-0.5">Minut</div>
                     </div>
                 </div>
 
                 <!-- HIGH SCORES -->
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <span>🥇</span> Najboljši rezultati
-                    </h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <!-- COIN -->
-                        <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex flex-col">
-                            <div class="text-yellow-600 text-xs font-bold uppercase mb-1">Kovanci</div>
-                            <div class="text-2xl font-bold text-slate-800 flex-1" id="hs-coin">0</div>
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Najboljši rezultati</div>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M19 7a3 3 0 11-6 0 3 3 0 016 0zM4.5 19.5L10.5 12.5M6 13L10.5 12.5L11 17"/></svg>
+                                </div>
+                                <span class="text-sm font-medium text-slate-700">Kovanci</span>
+                            </div>
+                            <div class="text-lg font-bold text-slate-800" id="hs-coin">0</div>
                         </div>
-                        <!-- MAZE -->
-                        <div class="bg-green-50 p-4 rounded-xl border border-green-100 flex flex-col">
-                            <div class="text-green-600 text-xs font-bold uppercase mb-1">Labirint</div>
-                            <div class="text-2xl font-bold text-slate-800 flex-1" id="hs-maze">0</div>
+                        <div class="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M7.5 3.75H6C4.75736 3.75 3.75 4.75736 3.75 6V7.5M16.5 3.75H18C19.2426 3.75 20.25 4.75736 20.25 6V7.5M20.25 16.5V18C20.25 19.2426 19.2426 20.25 18 20.25H16.5M7.5 20.25H6C4.75736 20.25 3.75 19.2426 3.75 18V16.5M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z"/></svg>
+                                </div>
+                                <span class="text-sm font-medium text-slate-700">Ravnotežje</span>
+                            </div>
+                            <div class="text-lg font-bold text-slate-800" id="hs-hold">0</div>
                         </div>
-                        <!-- HOLD -->
-                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col">
-                            <div class="text-blue-600 text-xs font-bold uppercase mb-1">Ravnotežje</div>
-                            <div class="text-2xl font-bold text-slate-800 flex-1" id="hs-hold">0</div>
+                        <div class="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M21 20H4C2 20 2 14 4 14H19C21 14 21 8 19 8H9V2M6 5L9 2L12 5"/></svg>
+                                </div>
+                                <span class="text-sm font-medium text-slate-700">Slalom</span>
+                            </div>
+                            <div class="text-lg font-bold text-slate-800" id="hs-slalom">0</div>
                         </div>
-                        <!-- SLALOM -->
-                        <div class="bg-cyan-50 p-4 rounded-xl border border-cyan-100 flex flex-col">
-                            <div class="text-cyan-600 text-xs font-bold uppercase mb-1">Slalom</div>
-                            <div class="text-2xl font-bold text-slate-800 flex-1" id="hs-slalom">0</div>
+                        <div class="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                            <div class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M6 21V3M18 21V3M12 3V19M9 16L12 19L15 16"/></svg>
+                                </div>
+                                <span class="text-sm font-medium text-slate-700">Labirint</span>
+                            </div>
+                            <div class="text-lg font-bold text-slate-800" id="hs-maze">0</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
-                    <div>
-                        <div class="text-slate-400 text-xs font-bold uppercase mb-1">Čas igranja</div>
-                        <div class="text-lg font-bold text-slate-700" id="profile-time">0 min</div>
-                    </div>
-                    <div class="text-2xl opacity-20">⏱</div>
+            </div>
+        </div>
+
+        <!-- ONBOARDING MODAL -->
+        <div id="onboarding-modal"
+            class="hidden absolute inset-0 z-[70] bg-slate-900/50 backdrop-blur-md flex items-end sm:items-center justify-center p-4 pb-8">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full border border-white/50 overflow-hidden">
+
+                <!-- Shared mini header (visible on all slides) -->
+                <div class="flex items-center justify-center gap-2 pt-5 pb-2 select-none">
+                    <img src="logo.svg" class="h-6 w-auto" alt="">
+                    <span class="font-['Poppins'] font-light text-xs tracking-[0.2em] text-slate-400">SMART BALANCE BOARD</span>
                 </div>
 
+                <!-- Slide 0: Welcome -->
+                <div id="onb-slide-0" class="flex flex-col items-center text-center gap-3 px-8 pb-2">
+                    <img src="inst_step1.png" class="h-48 w-auto object-contain" alt="">
+                    <h2 class="text-2xl font-bold text-slate-800">Dobrodošli!</h2>
+                    <p class="text-slate-500 text-sm leading-relaxed">Z zabavnimi igrami izboljšujte ravnotežje, koordinacijo in fokus. Vse kar potrebujete je vaša pametna ravnotežna deska.</p>
+                </div>
+
+                <!-- Slide 1: Connect + Power on -->
+                <div id="onb-slide-1" class="hidden flex flex-col items-center text-center gap-3 px-8 pb-2">
+                    <img src="inst_step2.png" class="h-44 w-auto object-contain" alt="">
+                    <h2 class="text-2xl font-bold text-slate-800">Poveži desko</h2>
+                    <div class="text-left text-sm text-slate-500 space-y-2 w-full">
+                        <div class="flex gap-3 items-start">
+                            <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                            <span>Na dnu deske pritisni gumb — lučka bo utripala <strong>rdeče in modro</strong>.</span>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                            <span>Vklopi <strong>Bluetooth</strong> na svojem telefonu.</span>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                            <span>Pritisni gumb <strong>Poveži ravnotežno desko</strong> na glavni strani.</span>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">4</span>
+                            <span>Izberi svojo desko s prikazanega seznama.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Calibrate -->
+                <div id="onb-slide-2" class="hidden flex flex-col items-center text-center gap-3 px-8 pb-2">
+                    <img src="inst_step3.png" class="h-44 w-auto object-contain" alt="">
+                    <h2 class="text-2xl font-bold text-slate-800">Kalibracija</h2>
+                    <div class="text-left text-sm text-slate-500 space-y-2 w-full">
+                        <div class="flex gap-3 items-start">
+                            <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
+                            <span>Postavi desko na <strong>ravno podlago</strong> in stopi z nje.</span>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
+                            <span>Počakaj <strong>~30 sekund</strong>, da se senzorji umirijo.</span>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <span class="w-5 h-5 rounded-full bg-teal-100 text-teal-700 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
+                            <span>V igri pritisni <strong>Kalibracija</strong>, da nastaviš ničelno točko senzorjev.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Play! -->
+                <div id="onb-slide-3" class="hidden flex flex-col items-center text-center gap-3 px-8 pb-2">
+                    <img src="inst_step4.png" class="h-44 w-auto object-contain" alt="">
+                    <h2 class="text-2xl font-bold text-slate-800">Pripravljeni!</h2>
+                    <p class="text-slate-500 text-sm leading-relaxed">Izberi igro, ki te veseli — od lovljenja kovancev do zen labirinta. Vsaka trenira drugačne sposobnosti ravnotežja in koordinacije.</p>
+                    <p class="text-teal-600 font-semibold text-sm">Vsak trening te naredi boljšega. Zmoreš!</p>
+                </div>
+
+                <!-- Navigation footer -->
+                <div class="px-8 pt-4 pb-7 flex flex-col gap-4">
+                    <div class="flex justify-center gap-2">
+                        <div id="onb-dot-0" class="w-2 h-2 rounded-full bg-teal-500 transition-all"></div>
+                        <div id="onb-dot-1" class="w-2 h-2 rounded-full bg-slate-200 transition-all"></div>
+                        <div id="onb-dot-2" class="w-2 h-2 rounded-full bg-slate-200 transition-all"></div>
+                        <div id="onb-dot-3" class="w-2 h-2 rounded-full bg-slate-200 transition-all"></div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="onb-prev" onclick="app.prevOnboardingSlide()"
+                            class="hidden flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-all">
+                            ← Nazaj
+                        </button>
+                        <button id="onb-next" onclick="app.nextOnboardingSlide()"
+                            class="flex-1 py-3 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200">
+                            Naprej →
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -1,11 +1,17 @@
-const CACHE_NAME = 'balance-board-v1';
+const CACHE_NAME = 'balance-board-v8';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './game.js',
-    './logo.png',
+    './icons.svg',
+    './logo.svg',
     './logo_header.png',
+    './logo_icon.png',
+    './inst_step1.png',
+    './inst_step2.png',
+    './inst_step3.png',
+    './inst_step4.png',
     './tailwind.min.js',
     'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap'
 ];
@@ -44,11 +50,26 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Fetch event - serving from cache or network
+// Fetch event - network-first for HTML/JS/CSS (picks up updates), cache-first for assets
 self.addEventListener('fetch', event => {
+    const req = event.request;
+    const url = new URL(req.url);
+
+    if (url.origin === location.origin &&
+        (req.destination === 'document' || req.destination === 'script' || req.destination === 'style')) {
+        event.respondWith(
+            fetch(req)
+                .then(response => {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(req, clone));
+                    return response;
+                })
+                .catch(() => caches.match(req))
+        );
+        return;
+    }
+
     event.respondWith(
-        caches.match(event.request).then(response => {
-            return response || fetch(event.request);
-        })
+        caches.match(req).then(response => response || fetch(req))
     );
 });

@@ -12,7 +12,49 @@ const COIN_SIZE = 20;
 const SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
 const CHAR_UUID = "19b10001-e8f2-537e-4f6c-d104768a1214";
 
-// --- PROFILE MANAGER ---
+// Game-specific difficulty descriptions shown on the difficulty selection screen
+const DIFFICULTY_DESCRIPTIONS = {
+    HOLD:   { EASY: "Velik cilj • Statično ravnotežje",      MEDIUM: "Srednji cilj • Propriocepcija",         HARD: "Majhen cilj • Mišična preciznost"     },
+    SLALOM: { EASY: "Počasna vrata • Širok prehod",          MEDIUM: "Srednja hitrost • Ožji prehod",          HARD: "Hitra vrata • Natančno slalomiranje"   },
+    COIN:   { EASY: "Kovanci se zadržijo dlje",               MEDIUM: "Standardni tempo zbiranja",              HARD: "Hitro menjavanje • Agilnost"            },
+    MAZE:   { EASY: "Počasen tempo • Prostrani hodniki",      MEDIUM: "Normalna hitrost navigacije",            HARD: "Hitro • Ozki hodniki • Fokus"           }
+};
+
+const GAME_THEMES = {
+    COIN: {
+        icon: { cls: 'bg-teal-100 text-teal-600', path: 'M19 7a3 3 0 11-6 0 3 3 0 016 0zM4.5 19.5L10.5 12.5M6 13L10.5 12.5L11 17' },
+        easy:   { btn: 'w-full py-4 bg-teal-50 hover:bg-teal-100 text-teal-800 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',   desc: 'text-xs text-teal-600/60 block' },
+        medium: { btn: 'w-full py-4 bg-teal-100 hover:bg-teal-200 text-teal-900 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',  desc: 'text-xs text-teal-700/60 block' },
+        hard:   { btn: 'w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
+        player: { bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)', shadow: '0 4px 6px rgba(13,148,136,0.3)' },
+        levelCls: 'text-2xl font-bold text-teal-600',
+    },
+    HOLD: {
+        icon: { cls: 'bg-rose-100 text-rose-600', path: 'M7.5 3.75H6C4.75736 3.75 3.75 4.75736 3.75 6V7.5M16.5 3.75H18C19.2426 3.75 20.25 4.75736 20.25 6V7.5M20.25 16.5V18C20.25 19.2426 19.2426 20.25 18 20.25H16.5M7.5 20.25H6C4.75736 20.25 3.75 19.2426 3.75 18V16.5M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z' },
+        easy:   { btn: 'w-full py-4 bg-rose-50 hover:bg-rose-100 text-rose-800 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',   desc: 'text-xs text-rose-600/60 block' },
+        medium: { btn: 'w-full py-4 bg-rose-100 hover:bg-rose-200 text-rose-900 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',  desc: 'text-xs text-rose-700/60 block' },
+        hard:   { btn: 'w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
+        player: { bg: 'linear-gradient(135deg,#fb7185,#e11d48)', shadow: '0 4px 6px rgba(225,29,72,0.3)' },
+        levelCls: 'text-2xl font-bold text-rose-600',
+    },
+    SLALOM: {
+        icon: { cls: 'bg-sky-100 text-sky-600', path: 'M21 20H4C2 20 2 14 4 14H19C21 14 21 8 19 8H9V2M6 5L9 2L12 5' },
+        easy:   { btn: 'w-full py-4 bg-sky-50 hover:bg-sky-100 text-sky-800 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',   desc: 'text-xs text-sky-600/60 block' },
+        medium: { btn: 'w-full py-4 bg-sky-100 hover:bg-sky-200 text-sky-900 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',  desc: 'text-xs text-sky-700/60 block' },
+        hard:   { btn: 'w-full py-4 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-sky-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
+        player: { bg: 'linear-gradient(135deg,#38bdf8,#0284c7)', shadow: '0 4px 6px rgba(2,132,199,0.3)' },
+        levelCls: 'text-2xl font-bold text-sky-600',
+    },
+    MAZE: {
+        icon: { cls: 'bg-orange-100 text-orange-600', path: 'M6 21V3M18 21V3M12 3V19M9 16L12 19L15 16' },
+        easy:   { btn: 'w-full py-4 bg-orange-50 hover:bg-orange-100 text-orange-800 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',   desc: 'text-xs text-orange-600/60 block' },
+        medium: { btn: 'w-full py-4 bg-orange-100 hover:bg-orange-200 text-orange-900 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',  desc: 'text-xs text-orange-700/60 block' },
+        hard:   { btn: 'w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-orange-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
+        player: { bg: 'linear-gradient(135deg,#fb923c,#ea580c)', shadow: '0 4px 6px rgba(234,88,12,0.3)' },
+        levelCls: 'text-2xl font-bold text-orange-600',
+    },
+};
+
 // --- PROFILE MANAGER ---
 const ProfileManager = {
     data: {
@@ -126,35 +168,49 @@ const ProfileManager = {
     },
 
     updateUI() {
-        // Menu Score
+        // Menu stats strip
         const elMenuScore = document.getElementById('menu-total-score');
         if (elMenuScore) elMenuScore.innerText = this.data.totalScore;
+
+        const elMenuGames = document.getElementById('menu-games-played');
+        if (elMenuGames) elMenuGames.innerText = this.data.gamesPlayed;
+
+        const elMenuTime = document.getElementById('menu-play-time');
+        if (elMenuTime) elMenuTime.innerText = Math.floor(this.data.totalTimeSec / 60);
+
 
         // Profile Stats
         const elProfileScore = document.getElementById('profile-total-score');
         if (elProfileScore) elProfileScore.innerText = this.data.totalScore;
 
         const elProfileTime = document.getElementById('profile-time');
-        if (elProfileTime) elProfileTime.innerText = Math.floor(this.data.totalTimeSec / 60) + " min";
+        if (elProfileTime) elProfileTime.innerText = Math.floor(this.data.totalTimeSec / 60);
 
         const elProfileGames = document.getElementById('profile-games');
         if (elProfileGames) elProfileGames.innerText = this.data.gamesPlayed;
 
         // High Scores
         const elHsCoin = document.getElementById('hs-coin');
-        if (elHsCoin) elHsCoin.innerText = this.data.highScores.COIN || 0;
+        if (elHsCoin) elHsCoin.innerText = this.data.highScores.COIN || '—';
 
         const elHsMaze = document.getElementById('hs-maze');
-        if (elHsMaze) elHsMaze.innerText = this.data.highScores.MAZE || 0;
+        if (elHsMaze) elHsMaze.innerText = this.data.highScores.MAZE || '—';
 
         const elHsHold = document.getElementById('hs-hold');
-        if (elHsHold) elHsHold.innerText = this.data.highScores.HOLD || 0;
+        if (elHsHold) elHsHold.innerText = this.data.highScores.HOLD || '—';
 
         const elHsSlalom = document.getElementById('hs-slalom');
-        if (elHsSlalom) elHsSlalom.innerText = this.data.highScores.SLALOM || 0;
+        if (elHsSlalom) elHsSlalom.innerText = this.data.highScores.SLALOM || '—';
 
         // Experience / Rank
         const rank = this.getRankInfo();
+
+        const elMenuRankTitle = document.getElementById('menu-rank-title');
+        if (elMenuRankTitle) elMenuRankTitle.innerText = rank.title;
+
+        const elMenuRankBar = document.getElementById('menu-rank-bar');
+        if (elMenuRankBar) elMenuRankBar.style.width = rank.progress + '%';
+
         const elRankTitle = document.getElementById('profile-rank-title');
         if (elRankTitle) elRankTitle.innerText = rank.title;
 
@@ -214,7 +270,9 @@ const app = {
     gameScoreElem: document.getElementById('game-score'),
     gameTimerElem: document.getElementById('game-timer'),
 
-    deferredPrompt: null, // For PWA installation
+    deferredPrompt: null,
+    _simMouseHandler: null,
+    onboardingSlide: 0,
 
     init() {
         ProfileManager.init();
@@ -265,6 +323,11 @@ const app = {
 
         // Initial View
         this.switchView('menu');
+
+        // First-visit onboarding
+        if (!localStorage.getItem('onboarding_seen')) {
+            this.showOnboarding();
+        }
     },
 
     handleResize() {
@@ -310,7 +373,7 @@ const app = {
 
         const toast = document.createElement('div');
         toast.className = "bg-slate-800 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-bounce-in opacity-0 translate-y-4 transition-all duration-300 transform";
-        toast.innerHTML = `<span class="text-xl">🔔</span> <span class="font-medium">${message}</span>`;
+        toast.innerHTML = `<svg class="w-5 h-5 shrink-0 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg> <span class="font-medium">${message}</span>`;
 
         container.appendChild(toast);
 
@@ -345,13 +408,35 @@ const app = {
             return;
         }
 
-        let title = "Igra";
-        if (gameMode === 'COIN') title = "Lov za kovanci";
-        if (gameMode === 'MAZE') title = "Zen labirint";
-        if (gameMode === 'HOLD') title = "Drži sredino";
-        if (gameMode === 'SLALOM') title = "Smučarski Slalom";
+        const theme = GAME_THEMES[gameMode];
+        if (theme) {
+            const iconEl = document.getElementById('diff-game-icon');
+            if (iconEl) {
+                iconEl.className = `w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${theme.icon.cls}`;
+                iconEl.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="${theme.icon.path}"/></svg>`;
+            }
+            const easyBtn = document.getElementById('diff-btn-easy');
+            const medBtn  = document.getElementById('diff-btn-medium');
+            const hardBtn = document.getElementById('diff-btn-hard');
+            if (easyBtn) easyBtn.className = theme.easy.btn;
+            if (medBtn)  medBtn.className  = theme.medium.btn;
+            if (hardBtn) hardBtn.className = theme.hard.btn;
+            const easyDesc = document.getElementById('diff-easy-desc');
+            const medDesc  = document.getElementById('diff-medium-desc');
+            const hardDesc = document.getElementById('diff-hard-desc');
+            if (easyDesc) easyDesc.className = theme.easy.desc;
+            if (medDesc)  medDesc.className  = theme.medium.desc;
+            if (hardDesc) hardDesc.className = theme.hard.desc;
+        }
 
-        document.getElementById('diff-game-name').innerText = title;
+        const descs = DIFFICULTY_DESCRIPTIONS[gameMode] || {};
+        const easyDesc = document.getElementById('diff-easy-desc');
+        const medDesc  = document.getElementById('diff-medium-desc');
+        const hardDesc = document.getElementById('diff-hard-desc');
+        if (easyDesc) easyDesc.textContent = descs.EASY   || "Počasen tempo";
+        if (medDesc)  medDesc.textContent  = descs.MEDIUM || "Normalna hitrost";
+        if (hardDesc) hardDesc.textContent = descs.HARD   || "Visoka hitrost in natančnost";
+
         this.switchView('difficulty');
     },
 
@@ -386,6 +471,14 @@ const app = {
         this.holdTarget = { x: GAME_SIZE / 2, y: GAME_SIZE / 2, r: 80 };
 
         this.updateHUD();
+
+        const theme = GAME_THEMES[this.activeGame];
+        if (theme) {
+            const player = document.getElementById('player');
+            if (player) { player.style.background = theme.player.bg; player.style.boxShadow = theme.player.shadow; }
+            const levelEl = document.getElementById('game-level');
+            if (levelEl) levelEl.className = theme.levelCls;
+        }
 
         // Setup Board based on game
         const gameArea = document.getElementById('game-area');
@@ -533,6 +626,44 @@ const app = {
         const modal = document.getElementById('game-over-modal');
         if (modal) modal.classList.add('hidden');
         this.showMenu();
+    },
+
+    showOnboarding() {
+        this.onboardingSlide = 0;
+        this._updateOnboardingSlide();
+        document.getElementById('onboarding-modal').classList.remove('hidden');
+    },
+
+    closeOnboarding() {
+        document.getElementById('onboarding-modal').classList.add('hidden');
+        localStorage.setItem('onboarding_seen', '1');
+    },
+
+    nextOnboardingSlide() {
+        if (this.onboardingSlide < 3) {
+            this.onboardingSlide++;
+            this._updateOnboardingSlide();
+        } else {
+            this.closeOnboarding();
+        }
+    },
+
+    prevOnboardingSlide() {
+        if (this.onboardingSlide > 0) {
+            this.onboardingSlide--;
+            this._updateOnboardingSlide();
+        }
+    },
+
+    _updateOnboardingSlide() {
+        for (let i = 0; i < 4; i++) {
+            document.getElementById(`onb-slide-${i}`).classList.toggle('hidden', i !== this.onboardingSlide);
+            document.getElementById(`onb-dot-${i}`).className =
+                `w-2 h-2 rounded-full transition-all ${i === this.onboardingSlide ? 'bg-teal-500' : 'bg-slate-200'}`;
+        }
+        document.getElementById('onb-prev').classList.toggle('hidden', this.onboardingSlide === 0);
+        const nextBtn = document.getElementById('onb-next');
+        nextBtn.textContent = this.onboardingSlide === 3 ? 'Začnimo!' : 'Naprej →';
     },
 
     updateHUD() {
@@ -776,7 +907,7 @@ const app = {
             document.getElementById('device-status').className = "text-xs text-center text-rose-500 font-bold mb-2";
             const btn = document.getElementById('connectBtn');
             if (btn) btn.className = "w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200";
-            alert("Povezava ni uspela. Preverite, če je deska vklopljena.");
+            this.showNotification("Povezava ni uspela. Preverite, če je deska vklopljena.", 5000);
         }
     },
 
@@ -800,6 +931,10 @@ const app = {
     // SIMULATION
     startSimulation() {
         if (this.simInterval) clearInterval(this.simInterval);
+        if (this._simMouseHandler) {
+            document.removeEventListener('mousemove', this._simMouseHandler);
+            document.removeEventListener('touchmove', this._simMouseHandler);
+        }
 
         this.isConnected = true;
         document.getElementById('device-status').innerText = "Simulacija aktivna";
@@ -811,19 +946,26 @@ const app = {
         const batLabel = document.getElementById('battery-label-text');
         if (batLabel) batLabel.innerText = "Simulacija";
 
+        // Move mouse over the game area to simulate board tilt
+        this._simMouseHandler = (e) => {
+            const gameArea = document.getElementById('game-area');
+            if (!gameArea) return;
+            const rect = gameArea.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const halfW = rect.width / 2;
+            const halfH = rect.height / 2;
+            this.rawRoll = Math.max(-5, Math.min(5, ((clientX - rect.left - halfW) / halfW) * 5));
+            this.rawPitch = Math.max(-5, Math.min(5, ((clientY - rect.top - halfH) / halfH) * 5));
+            this.inputRoll = this.rawRoll - (ProfileManager.data.calibration.roll || 0);
+            this.inputPitch = this.rawPitch - (ProfileManager.data.calibration.pitch || 0);
+        };
+        document.addEventListener('mousemove', this._simMouseHandler);
+        document.addEventListener('touchmove', this._simMouseHandler, { passive: true });
+
         this.simInterval = setInterval(() => {
-            // Simulate 52-55% battery
             const bat = 52 + Math.floor(Math.random() * 4);
 
-            // User requested Pitch 0.1 and Roll -0.2
-            this.rawPitch = 0.1;
-            this.rawRoll = -0.2;
-
-            // Apply Calibration (so it feels real if they calibrate)
-            this.inputPitch = this.rawPitch - (ProfileManager.data.calibration.pitch || 0);
-            this.inputRoll = this.rawRoll - (ProfileManager.data.calibration.roll || 0);
-
-            // Update Debug UI
             const dbgPitch = document.getElementById('dbg-pitch');
             const dbgRoll = document.getElementById('dbg-roll');
             const dbgBat = document.getElementById('dbg-bat');
@@ -837,14 +979,14 @@ const app = {
             this.processBatteryLevel(bat);
         }, 1000);
 
-        this.showNotification("Simulacija povezave zagnana.");
+        this.showNotification("Simulacija zagnana. Premikaj miško nad igro.");
     },
 
     startChargingSimulation() {
         if (this.simInterval) clearInterval(this.simInterval);
 
         this.isConnected = true;
-        document.getElementById('device-status').innerText = "Simulacija: ⚡";
+        document.getElementById('device-status').innerText = "Simulacija: POLNJENJE";
         document.getElementById('device-status').className = "text-center mb-2 text-indigo-600 font-bold";
 
         const connUI = document.getElementById('connection-ui');
@@ -884,9 +1026,28 @@ const app = {
         if (this.simInterval) {
             clearInterval(this.simInterval);
             this.simInterval = null;
-            this.onDisconnect();
-            this.showNotification("Simulacija ustavljena.");
         }
+        if (this._simMouseHandler) {
+            document.removeEventListener('mousemove', this._simMouseHandler);
+            document.removeEventListener('touchmove', this._simMouseHandler);
+            this._simMouseHandler = null;
+        }
+        this.onDisconnect();
+        this.showNotification("Simulacija ustavljena.");
+    },
+
+    resetProfile() {
+        localStorage.removeItem('balance_profile_v2');
+        ProfileManager.data = {
+            totalScore: 0,
+            totalTimeSec: 0,
+            gamesPlayed: 0,
+            sessions: [],
+            highScores: { COIN: 0, MAZE: 0, HOLD: 0, SLALOM: 0 },
+            calibration: ProfileManager.data.calibration
+        };
+        ProfileManager.updateUI();
+        this.showNotification("Zgodovina iger je bila izbrisana.");
     },
 
     handleData(event) {
@@ -985,7 +1146,7 @@ const app = {
         }
 
         if (this.isBatteryCharging) {
-            levelText.innerText = "⚡";
+            levelText.innerText = "CHG";
             fill.style.width = '100%';
             fill.className = "h-full bg-teal-500 rounded-sm animate-pulse transition-all duration-500";
         } else {
@@ -1093,13 +1254,7 @@ const app = {
             if (this.coinsCollected >= 10) {
                 this.coinsCollected = 0;
                 this.level++;
-                this.timeLeft = 60; // Reset timer was added by user, keep it? User didn't complain about it. "10 points means new level".
-                // User said "10 points for new level is for every game". Didn't explicitly say "reset time". 
-                // In Slalom user said "game ends after 2 min" (no reset).
-                // In Coin, user previously added `this.timeLeft = 60`.
-                // I'll keep the time reset for Coin as it's an "Endurance" style potentially?
-                // Actually, user said "game of coins ... ups the level with each coin ... change that to 10".
-                // Let's keep strict to "10 pts = level".
+                this.timeLeft = 60;
                 this.showNotification(`Nivo ${this.level}! Kovanci so hitrejši.`);
             }
             this.spawnCoin();
@@ -1338,39 +1493,42 @@ const MazeManager = {
 
     render() {
         const gameArea = document.getElementById('game-area');
-        // Clear previous walls & goal
-        const oldWalls = document.querySelectorAll('.wall');
-        oldWalls.forEach(w => w.remove());
-        const oldMazeWalls = document.querySelectorAll('.maze-wall'); // Clean up old types
-        oldMazeWalls.forEach(w => w.remove());
+
         const oldGoal = document.getElementById('maze-goal');
         if (oldGoal) oldGoal.remove();
 
+        // Draw walls on a single canvas instead of hundreds of divs
+        let canvas = document.getElementById('maze-canvas');
+        if (!canvas) {
+            canvas = document.createElement('canvas');
+            canvas.id = 'maze-canvas';
+            canvas.width = GAME_SIZE;
+            canvas.height = GAME_SIZE;
+            canvas.style.cssText = 'position:absolute;top:0;left:0;z-index:1;';
+            gameArea.appendChild(canvas);
+        }
+
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, GAME_SIZE, GAME_SIZE);
+        ctx.fillStyle = '#94a3b8';
 
         for (let r = 0; r < this.gridDim; r++) {
             for (let c = 0; c < this.gridDim; c++) {
                 if (this.map[r][c] === 1) {
-                    const w = document.createElement('div');
-                    w.className = 'wall absolute bg-slate-400 border border-slate-500 rounded-sm shadow-sm';
-                    w.style.width = this.cellSize + 'px';
-                    w.style.height = this.cellSize + 'px';
-                    w.style.left = (c * this.cellSize) + 'px';
-                    w.style.top = (r * this.cellSize) + 'px';
-                    gameArea.appendChild(w);
+                    ctx.fillRect(c * this.cellSize, r * this.cellSize, this.cellSize, this.cellSize);
                 }
             }
         }
 
-        // Add Goal Zone (Bottom-Right Logical Cell)
-        // 7th logical cell is index 6. 6*5+1 = 31. Range 31..34.
         const goal = document.createElement('div');
+        goal.id = 'maze-goal';
         goal.className = 'absolute bg-green-400/30 border-2 border-green-500 animate-pulse flex items-center justify-center';
-        goal.style.left = (31 * this.cellSize) + 'px'; // 310px
-        goal.style.top = (31 * this.cellSize) + 'px'; // 310px
+        goal.style.left = (31 * this.cellSize) + 'px';
+        goal.style.top = (31 * this.cellSize) + 'px';
         goal.style.width = '40px';
         goal.style.height = '40px';
-        goal.innerHTML = "🏁";
-        goal.id = "maze-goal";
+        goal.style.zIndex = '2';
+        goal.innerHTML = '<svg style="width:24px;height:24px;display:block;margin:auto;margin-top:8px" fill="none" stroke="#0d9488" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>';
         gameArea.appendChild(goal);
     },
 

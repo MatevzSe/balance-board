@@ -2,10 +2,6 @@
 #game-area {
     width: 350px;
     height: 350px;
-    /* Circular Game Board for a friendlier feel, or keep square but rounded. 
-       Let's stick to square with heavy rounding to match the cards. */
-    border-radius: 50%;
-    /* Make it a circle! "Balance" implies circle often. */
     background: #f1f5f9;
     /* Slate-100 */
 
@@ -67,8 +63,7 @@
     }
 }
 
-/* Background blob animation handles in CSS */
-/* Background blob animation handles in CSS */
+/* Background blob animation */
 @keyframes blob {
     0% {
         transform: translate(0px, 0px) scale(1);
@@ -88,29 +83,11 @@
 }
 
 .animate-blob {
-    animation: blob 7s infinite;
+    animation: blob 14s infinite;
 }
 
 .animation-delay-2000 {
     animation-delay: 2s;
-}
-
-/* === MAZE GAME ELEMENTS === */
-.maze-wall {
-    position: absolute;
-    background-color: #cbd5e1;
-    /* slate-300 */
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.maze-goal {
-    position: absolute;
-    background-color: #f87171;
-    /* red-400 */
-    border-radius: 50%;
-    opacity: 0.8;
-    box-shadow: 0 0 10px #f87171;
 }
 
 /* Utils */
