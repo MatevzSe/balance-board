@@ -1,4 +1,4 @@
-const CACHE_NAME = 'balance-board-v25';
+const CACHE_NAME = 'balance-board-v26';
 const ASSETS = [
     './',
     './index.html',

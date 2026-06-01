@@ -418,38 +418,33 @@ const app = {
 
         // PWA Install Logic
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevent the mini-infobar from appearing on mobile
             e.preventDefault();
-            // Stash the event so it can be triggered later.
             this.deferredPrompt = e;
-            // Update UI notify the user they can install the PWA
-            const installUI = document.getElementById('install-ui');
-            if (installUI) installUI.classList.remove('hidden');
+            if (!localStorage.getItem('install_dismissed')) {
+                this.showInstallUI('chrome');
+            }
         });
+
+        // iOS: no beforeinstallprompt — detect manually
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase());
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || !!navigator.standalone;
+        if (isIOS && !isStandalone && !localStorage.getItem('install_dismissed')) {
+            this.showInstallUI('ios');
+        }
 
         const installBtn = document.getElementById('installBtn');
         if (installBtn) {
             installBtn.addEventListener('click', async () => {
                 if (!this.deferredPrompt) return;
-                // Show the install prompt
                 this.deferredPrompt.prompt();
-                // Wait for the user to respond to the prompt
                 const { outcome } = await this.deferredPrompt.userChoice;
-                console.log(`User response to the install prompt: ${outcome}`);
-                // We've used the prompt, and can't use it again, throw it away
                 this.deferredPrompt = null;
-                // Hide the install UI
-                const installUI = document.getElementById('install-ui');
-                if (installUI) installUI.classList.add('hidden');
+                if (outcome === 'accepted') this.dismissInstall();
             });
         }
 
         window.addEventListener('appinstalled', () => {
-            // Log install to analytics
-            console.log('PWA was installed');
-            // Hide the install UI
-            const installUI = document.getElementById('install-ui');
-            if (installUI) installUI.classList.add('hidden');
+            this.dismissInstall();
             this.deferredPrompt = null;
         });
 
@@ -509,6 +504,21 @@ const app = {
 
     closeMilestoneModal() {
         document.getElementById('milestone-modal').classList.add('hidden');
+    },
+
+    showInstallUI(variant) {
+        const installUI = document.getElementById('install-ui');
+        const chrome = document.getElementById('install-chrome');
+        const ios = document.getElementById('install-ios');
+        if (installUI) installUI.classList.remove('hidden');
+        if (chrome) chrome.classList.toggle('hidden', variant !== 'chrome');
+        if (ios) ios.classList.toggle('hidden', variant !== 'ios');
+    },
+
+    dismissInstall() {
+        localStorage.setItem('install_dismissed', '1');
+        const installUI = document.getElementById('install-ui');
+        if (installUI) installUI.classList.add('hidden');
     },
 
     // Fix: Add explicit endGame alias for the HTML button
