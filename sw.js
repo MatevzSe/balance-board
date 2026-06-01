@@ -1,4 +1,4 @@
-const CACHE_NAME = 'balance-board-v26';
+const CACHE_NAME = 'balance-board-v27';
 const ASSETS = [
     './',
     './index.html',
@@ -8,6 +8,8 @@ const ASSETS = [
     './logo.svg',
     './logo_header.png',
     './logo_icon.png',
+    './logo_icon_192.png',
+    './logo_icon_maskable.png',
     './inst_step1.png',
     './inst_step2.png',
     './inst_step3.png',
