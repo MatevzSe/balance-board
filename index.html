@@ -65,6 +65,15 @@
                     class="bg-yellow-600 hover:bg-yellow-500 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors mt-1">Reset History</button>
                 <button onclick="localStorage.removeItem('onboarding_seen');app.showOnboarding()"
                     class="bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors">Show Onboarding</button>
+                <div class="border-t border-white/20 mt-1 pt-1 text-[8px] text-white/50 uppercase">Milestones</div>
+                <button onclick="app.showMilestoneModal({days:7,title:'7 dni zapored',body:'Navada se začne graditi.'})"
+                    class="bg-teal-700 hover:bg-teal-600 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors">7 dni</button>
+                <button onclick="app.showMilestoneModal({days:14,title:'Dva tedna zapored',body:'Disciplina postaja del tebe.'})"
+                    class="bg-teal-700 hover:bg-teal-600 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors">14 dni</button>
+                <button onclick="app.showMilestoneModal({days:30,title:'30 dni zapored',body:'To ni več naključje.'})"
+                    class="bg-teal-700 hover:bg-teal-600 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors">30 dni</button>
+                <button onclick="app.showMilestoneModal({days:100,title:'100 dni zapored',body:'Redki pridejo tako daleč.'})"
+                    class="bg-teal-700 hover:bg-teal-600 text-white px-2 py-1 rounded text-[8px] uppercase font-bold transition-colors">100 dni</button>
             </div>
         </div>
 
@@ -195,26 +204,17 @@
             </div>
 
 
-            <!-- Compact Progress Strip -->
+            <!-- Daily Goal Card -->
             <div class="bg-slate-50 rounded-2xl border border-slate-100 flex overflow-hidden">
                 <div class="flex-1 p-4">
-                    <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Tvoj napredek</div>
-                    <div class="flex justify-around items-center">
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-slate-700" id="menu-total-score">0</div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-wide">Točke</div>
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2.5">Dnevni cilj</div>
+                    <div class="flex items-center gap-3 mb-1.5">
+                        <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div id="daily-goal-bar" class="h-full bg-teal-500 rounded-full transition-all duration-500" style="width:0%"></div>
                         </div>
-                        <div class="w-px h-8 bg-slate-200"></div>
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-slate-700" id="menu-games-played">0</div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-wide">Igre</div>
-                        </div>
-                        <div class="w-px h-8 bg-slate-200"></div>
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-slate-700" id="menu-play-time">0</div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-wide">Minut</div>
-                        </div>
+                        <span id="daily-goal-text" class="text-xs font-bold text-slate-600 shrink-0">0 / 100</span>
                     </div>
+                    <div id="streak-line" class="text-xs text-slate-400"></div>
                 </div>
                 <button onclick="app.showProfile()"
                     class="border-l border-slate-200 px-4 flex items-center justify-center text-slate-300 hover:bg-slate-100 hover:text-teal-600 transition-colors">
@@ -428,6 +428,10 @@
                         <div class="text-[10px] text-teal-500 uppercase tracking-wide mt-0.5">Minut</div>
                     </div>
                 </div>
+                <div class="bg-amber-50 rounded-xl px-4 py-3 border border-amber-100 flex items-center justify-between">
+                    <div class="text-[10px] text-amber-500 uppercase tracking-wide font-bold">Zaporedni dnevi</div>
+                    <div class="text-sm font-bold text-amber-600" id="profile-streak">0 dni zapored</div>
+                </div>
 
                 <!-- HIGH SCORES -->
                 <div>
@@ -472,6 +476,22 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- MILESTONE MODAL -->
+        <div id="milestone-modal"
+            class="hidden absolute inset-0 z-[65] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-6">
+            <div class="bg-white rounded-3xl p-8 shadow-2xl max-w-xs w-full text-center">
+                <div class="w-16 h-16 rounded-full bg-teal-50 border-4 border-teal-100 flex items-center justify-center mx-auto mb-5">
+                    <span id="milestone-days" class="text-2xl font-black text-teal-600">7</span>
+                </div>
+                <h2 id="milestone-title" class="text-xl font-bold text-slate-800 mb-2"></h2>
+                <p id="milestone-body" class="text-sm text-slate-500 mb-7 leading-relaxed"></p>
+                <button onclick="app.closeMilestoneModal()"
+                    class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-all">
+                    Naprej
+                </button>
             </div>
         </div>
 

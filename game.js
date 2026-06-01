@@ -80,10 +80,10 @@ const ProfileManager = {
     },
 
     ranks: [
-        { min: 0, title: "Začetnik" },
-        { min: 100, title: "Učenec" },
-        { min: 300, title: "Rekreativec" },
-        { min: 600, title: "Entuziast" },
+        { min: 0,    title: "Začetnik" },
+        { min: 100,  title: "Učenec" },
+        { min: 300,  title: "Rekreativec" },
+        { min: 600,  title: "Entuziast" },
         { min: 1000, title: "Polprofesionalec" },
         { min: 1500, title: "Profesionalec" },
         { min: 2200, title: "Ekspert" },
@@ -230,6 +230,132 @@ const ProfileManager = {
     }
 };
 
+// --- DAILY GOAL + STREAK MANAGER ---
+const DailyGoalManager = {
+    data: null,
+
+    // 50 pts for first 3 ranks, 100 pts from Entuziast onward
+    getGoal() {
+        const score = ProfileManager.data?.totalScore ?? 0;
+        return score >= ProfileManager.ranks[3].min ? 100 : 50;
+    },
+
+    _todayStr() {
+        return new Date().toISOString().slice(0, 10);
+    },
+
+    _yesterdayStr() {
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        return d.toISOString().slice(0, 10);
+    },
+
+    init() {
+        const today = this._todayStr();
+        const stored = JSON.parse(localStorage.getItem('daily_goal_v1') || 'null');
+        if (stored && stored.date === today) {
+            this.data = stored;
+            if (!this.data.goal) this.data.goal = this.getGoal();
+        } else {
+            this.data = {
+                date: today,
+                goal: this.getGoal(),
+                progress: 0,
+                achieved: false,
+                streakCount: stored?.streakCount ?? 0,
+                lastGoalDate: stored?.lastGoalDate ?? null,
+                celebratedMilestones: stored?.celebratedMilestones ?? []
+            };
+            this._save();
+        }
+        this.updateUI();
+    },
+
+    addPoints(points) {
+        if (!this.data || this.data.achieved || points <= 0) return;
+        this.data.progress = Math.min(this.data.goal, this.data.progress + points);
+        if (this.data.progress >= this.data.goal) {
+            this.data.achieved = true;
+            this._advanceStreak();
+        }
+        this._save();
+        this.updateUI();
+        if (this.data.achieved) this._celebrate();
+    },
+
+    _pendingMilestone: null,
+
+    _advanceStreak() {
+        const today = this._todayStr();
+        if (this.data.lastGoalDate === today) return;
+        this.data.streakCount = (this.data.lastGoalDate === this._yesterdayStr())
+            ? this.data.streakCount + 1
+            : 1;
+        this.data.lastGoalDate = today;
+        this._checkMilestone();
+    },
+
+    _checkMilestone() {
+        const milestones = [
+            { days: 7,   title: '7 dni zapored',    body: 'Navada se začne graditi.' },
+            { days: 14,  title: 'Dva tedna zapored', body: 'Disciplina postaja del tebe.' },
+            { days: 30,  title: '30 dni zapored',     body: 'To ni več naključje.' },
+            { days: 100, title: '100 dni zapored',   body: 'Redki pridejo tako daleč.' },
+        ];
+        const celebrated = this.data.celebratedMilestones ?? [];
+        const hit = milestones.find(m => m.days === this.data.streakCount && !celebrated.includes(m.days));
+        if (hit) {
+            this.data.celebratedMilestones = [...celebrated, hit.days];
+            this._pendingMilestone = hit;
+        }
+    },
+
+    _save() {
+        localStorage.setItem('daily_goal_v1', JSON.stringify(this.data));
+    },
+
+    updateUI() {
+        if (!this.data) return;
+        const bar = document.getElementById('daily-goal-bar');
+        const text = document.getElementById('daily-goal-text');
+
+        const goal = this.data.goal;
+        if (bar) bar.style.width = Math.min(100, (this.data.progress / goal) * 100) + '%';
+
+        if (text) {
+            if (this.data.achieved) {
+                text.textContent = 'Doseženo ✓';
+                text.className = 'text-xs font-bold text-teal-600 shrink-0';
+            } else {
+                text.textContent = `${this.data.progress} / ${goal}`;
+                text.className = 'text-xs font-bold text-slate-600 shrink-0';
+            }
+        }
+
+        const n = this.data.streakCount;
+        const streakText = this._zapored(n);
+
+        const streakLine = document.getElementById('streak-line');
+        if (streakLine) {
+            streakLine.textContent = streakText;
+            streakLine.className = this.data.achieved ? 'text-xs font-medium text-teal-500' : 'text-xs text-slate-400';
+        }
+
+        const profileStreak = document.getElementById('profile-streak');
+        if (profileStreak) profileStreak.textContent = streakText;
+    },
+
+    // Slovenian: 1 dan, 2+ dni, 101 dan, 11 dni (not 11 dan)
+    _zapored(n) {
+        const label = (n % 10 === 1 && n % 100 !== 11) ? 'dan' : 'dni';
+        return `${n} ${label} zapored`;
+    },
+
+    _celebrate() {
+        app.showNotification('Dnevni cilj dosežen! 🎯', 3000);
+    }
+};
+
 // --- APP MANAGER ---
 const app = {
     device: null,
@@ -281,6 +407,7 @@ const app = {
 
     init() {
         ProfileManager.init();
+        DailyGoalManager.init();
 
         // Connect Button
         document.getElementById('connectBtn').addEventListener('click', () => this.connectBluetooth());
@@ -359,11 +486,29 @@ const app = {
 
     showProfile() {
         this.switchView('profile');
+        DailyGoalManager.updateUI();
     },
 
     showMenu() {
         this.endGameLogic(false); // Force stop without saving if just navigating
         this.switchView('menu');
+        DailyGoalManager.updateUI();
+        if (DailyGoalManager._pendingMilestone) {
+            const m = DailyGoalManager._pendingMilestone;
+            DailyGoalManager._pendingMilestone = null;
+            setTimeout(() => this.showMilestoneModal(m), 400);
+        }
+    },
+
+    showMilestoneModal(milestone) {
+        document.getElementById('milestone-days').textContent = milestone.days;
+        document.getElementById('milestone-title').textContent = milestone.title;
+        document.getElementById('milestone-body').textContent = milestone.body;
+        document.getElementById('milestone-modal').classList.remove('hidden');
+    },
+
+    closeMilestoneModal() {
+        document.getElementById('milestone-modal').classList.add('hidden');
     },
 
     // Fix: Add explicit endGame alias for the HTML button
@@ -593,6 +738,7 @@ const app = {
 
         // Save Stats
         if (this.score > 0 && this.activeGame !== 'TEST') {
+            DailyGoalManager.addPoints(this.score);
             ProfileManager.addSession({
                 game: this.activeGame === 'COIN' ? "Kovanci" : (this.activeGame === 'MAZE' ? "Labirint" : (this.activeGame === 'SLALOM' ? "Slalom" : "Drži sredino")),
                 diff: this.difficulty,
