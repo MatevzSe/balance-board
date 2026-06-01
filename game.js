@@ -7,6 +7,7 @@
 const GAME_SIZE = 350;
 const PLAYER_SIZE = 30;
 const COIN_SIZE = 20;
+const EDGE_CLIP = 8; // px the ball can clip beyond each edge before hard-stopping
 
 // Bluetooth UUIDs
 const SERVICE_UUID = "19b10000-e8f2-537e-4f6c-d104768a1214";
@@ -28,6 +29,7 @@ const GAME_THEMES = {
         hard:   { btn: 'w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
         player: { bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)', shadow: '0 4px 6px rgba(13,148,136,0.3)' },
         levelCls: 'text-2xl font-bold text-teal-600',
+        areaBg: 'linear-gradient(135deg,#e0fdf4,#99f6e4)',
     },
     HOLD: {
         icon: { cls: 'bg-rose-100 text-rose-600', path: 'M7.5 3.75H6C4.75736 3.75 3.75 4.75736 3.75 6V7.5M16.5 3.75H18C19.2426 3.75 20.25 4.75736 20.25 6V7.5M20.25 16.5V18C20.25 19.2426 19.2426 20.25 18 20.25H16.5M7.5 20.25H6C4.75736 20.25 3.75 19.2426 3.75 18V16.5M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z' },
@@ -36,6 +38,7 @@ const GAME_THEMES = {
         hard:   { btn: 'w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
         player: { bg: 'linear-gradient(135deg,#fb7185,#e11d48)', shadow: '0 4px 6px rgba(225,29,72,0.3)' },
         levelCls: 'text-2xl font-bold text-rose-600',
+        areaBg: 'linear-gradient(135deg,#ffe4e6,#fecdd3)',
     },
     SLALOM: {
         icon: { cls: 'bg-sky-100 text-sky-600', path: 'M21 20H4C2 20 2 14 4 14H19C21 14 21 8 19 8H9V2M6 5L9 2L12 5' },
@@ -44,6 +47,7 @@ const GAME_THEMES = {
         hard:   { btn: 'w-full py-4 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-sky-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
         player: { bg: 'linear-gradient(135deg,#38bdf8,#0284c7)', shadow: '0 4px 6px rgba(2,132,199,0.3)' },
         levelCls: 'text-2xl font-bold text-sky-600',
+        areaBg: 'linear-gradient(135deg,#e0f2fe,#bae6fd)',
     },
     MAZE: {
         icon: { cls: 'bg-orange-100 text-orange-600', path: 'M6 21V3M18 21V3M12 3V19M9 16L12 19L15 16' },
@@ -52,6 +56,7 @@ const GAME_THEMES = {
         hard:   { btn: 'w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-orange-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
         player: { bg: 'linear-gradient(135deg,#fb923c,#ea580c)', shadow: '0 4px 6px rgba(234,88,12,0.3)' },
         levelCls: 'text-2xl font-bold text-orange-600',
+        areaBg: 'linear-gradient(135deg,#ffedd5,#fed7aa)',
     },
 };
 
@@ -452,8 +457,8 @@ const app = {
         if (this.activeGame === 'TEST') this.timeLeft = 600; // 10 min for Test/Calibration
 
         if (this.activeGame === 'MAZE') {
-            this.playerX = 15; // Start in top-left cell 1,1 (10px wall + 5px margin)
-            this.playerY = 15;
+            this.playerX = 2;
+            this.playerY = 2;
         } else {
             this.playerX = 160;
             this.playerY = 160;
@@ -489,6 +494,8 @@ const app = {
 
         // FIX: Always use square/rounded-rect for consistency so user doesn't fall off
         gameArea.style.borderRadius = "10px";
+        gameArea.style.background = theme?.areaBg || '#f1f5f9';
+        gameArea.style.boxShadow = 'inset 0 0 20px rgba(0,0,0,0.05)';
 
         if (this.activeGame === 'COIN') {
             this.spawnCoin();
@@ -551,8 +558,7 @@ const app = {
 
     levelUpSlalom() {
         this.level++;
-        // NO Time Reset for Slalom - strict 2 min limit
-        this.showNotification(`Odlično! Nivo ${this.level} - Hitreje!`);
+        this.showLevelUp(this.level);
         this.updateHUD();
     },
 
@@ -666,6 +672,31 @@ const app = {
         nextBtn.textContent = this.onboardingSlide === 3 ? 'Začnimo!' : 'Naprej →';
     },
 
+    showScorePop(x, y, text = '+1', color = '#0d9488') {
+        const el = document.createElement('div');
+        el.style.cssText = `position:absolute;left:${x}px;top:${y}px;transform:translateX(-50%);font-size:14px;font-weight:700;color:${color};pointer-events:none;z-index:20;animation:score-pop 0.6s ease-out forwards;`;
+        el.textContent = text;
+        document.getElementById('game-area').appendChild(el);
+        setTimeout(() => el.remove(), 600);
+    },
+
+    showRingBurst(x, y, r) {
+        const el = document.createElement('div');
+        el.style.cssText = `position:absolute;left:${x - r}px;top:${y - r}px;width:${r * 2}px;height:${r * 2}px;border-radius:50%;border:3px solid #fb7185;pointer-events:none;z-index:20;animation:ring-burst 0.5s ease-out forwards;`;
+        document.getElementById('game-area').appendChild(el);
+        setTimeout(() => el.remove(), 500);
+    },
+
+    showLevelUp(level) {
+        this.updateHUD();
+        const el = document.getElementById('game-level');
+        if (!el) return;
+        el.classList.remove('level-pop');
+        void el.offsetWidth; // force reflow to restart animation
+        el.classList.add('level-pop');
+        setTimeout(() => el.classList.remove('level-pop'), 650);
+    },
+
     updateHUD() {
         const elScore = document.getElementById('game-score');
         const elTimer = document.getElementById('game-timer');
@@ -745,19 +776,17 @@ const app = {
     },
 
     successHold() {
-        // Success!
+        this.showRingBurst(this.holdTarget.x, this.holdTarget.y, this.holdTarget.r);
+        this.showScorePop(this.holdTarget.x, this.holdTarget.y, '+5', '#e11d48');
         this.holdTimer = 0;
         this.score += 5; // 5 points per hold
 
         // Level Up every 10 points (every 2 holds)
         if (this.score % 10 === 0) {
             this.level++;
-            this.timeLeft = 30; // Reset time for Hold
-            // Make harder: Smaller radius (slower reduction)
+            this.timeLeft = 30;
             this.holdTarget.r = Math.max(20, this.holdTarget.r - 5);
-            this.showNotification(`Odlično! Nivo ${this.level}`);
-        } else {
-            this.showNotification(`Dobro! +5 točk`);
+            this.showLevelUp(this.level);
         }
 
         // Move target
@@ -777,8 +806,8 @@ const app = {
 
         this.coinElem = document.createElement('div');
         this.coinElem.id = 'coin';
-        this.coinElem.className = 'absolute w-6 h-6 rounded-full bg-yellow-400 shadow-lg border-2 border-yellow-200 animate-bounce flex items-center justify-center';
-        this.coinElem.innerHTML = '<span class="text-[10px]">🪙</span>';
+        this.coinElem.style.cssText = `position:absolute;width:${COIN_SIZE}px;height:${COIN_SIZE}px;border-radius:50%;background:linear-gradient(135deg,#fde68a,#f59e0b);border:2px solid rgba(255,255,255,0.5);animation:coin-pulse 1.2s ease-out infinite;z-index:5;display:flex;align-items:center;justify-content:center;`;
+        this.coinElem.innerHTML = `<svg style="width:12px;height:12px" fill="#92400e" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
 
         // Safe Spawn Logic: Don't spawn on player
         let safe = false;
@@ -922,7 +951,7 @@ const app = {
         document.getElementById('device-status').innerText = "Deska se je odklopila";
         document.getElementById('device-status').className = "text-xs text-center text-rose-500 font-bold mb-2";
         const btn = document.getElementById('connectBtn');
-        if (btn) btn.className = "w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200";
+        if (btn) btn.className = "w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200";
 
         this.showNotification("Deska se je odklopila!", 5000);
         this.showMenu();
@@ -1146,11 +1175,11 @@ const app = {
         }
 
         if (this.isBatteryCharging) {
-            levelText.innerText = "CHG";
+            levelText.innerHTML = '<svg style="display:inline;width:14px;height:14px;vertical-align:middle" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>';
             fill.style.width = '100%';
             fill.className = "h-full bg-teal-500 rounded-sm animate-pulse transition-all duration-500";
         } else {
-            levelText.innerText = this.displayedBatteryLevel + '%';
+            levelText.innerHTML = this.displayedBatteryLevel + '%';
             fill.style.width = this.displayedBatteryLevel + '%';
 
             // Color Logic
@@ -1187,9 +1216,8 @@ const app = {
 
             // Try X movement
             let newX = prevX + dx;
-            // Boundary Check X
-            if (newX < 0) newX = 0;
-            if (newX > GAME_SIZE - PLAYER_SIZE) newX = GAME_SIZE - PLAYER_SIZE;
+            if (newX < -EDGE_CLIP) newX = -EDGE_CLIP;
+            if (newX > GAME_SIZE - PLAYER_SIZE + EDGE_CLIP) newX = GAME_SIZE - PLAYER_SIZE + EDGE_CLIP;
 
             if (!MazeManager.checkCollision(newX, prevY)) {
                 this.playerX = newX;
@@ -1197,9 +1225,8 @@ const app = {
 
             // Try Y movement
             let newY = prevY + dy;
-            // Boundary Check Y
-            if (newY < 0) newY = 0;
-            if (newY > GAME_SIZE - PLAYER_SIZE) newY = GAME_SIZE - PLAYER_SIZE;
+            if (newY < -EDGE_CLIP) newY = -EDGE_CLIP;
+            if (newY > GAME_SIZE - PLAYER_SIZE + EDGE_CLIP) newY = GAME_SIZE - PLAYER_SIZE + EDGE_CLIP;
 
             if (!MazeManager.checkCollision(this.playerX, newY)) {
                 this.playerY = newY;
@@ -1210,11 +1237,11 @@ const app = {
             this.playerY += dy;
         }
 
-        // Final Boundary Checks for all modes (SLALOM only needs X, but Y is safe to check)
-        if (this.playerX < 0) this.playerX = 0;
-        if (this.playerX > GAME_SIZE - PLAYER_SIZE) this.playerX = GAME_SIZE - PLAYER_SIZE;
-        if (this.playerY < 0) this.playerY = 0;
-        if (this.playerY > GAME_SIZE - PLAYER_SIZE) this.playerY = GAME_SIZE - PLAYER_SIZE;
+        // Final Boundary Checks — allow EDGE_CLIP px of squash on each side
+        if (this.playerX < -EDGE_CLIP) this.playerX = -EDGE_CLIP;
+        if (this.playerX > GAME_SIZE - PLAYER_SIZE + EDGE_CLIP) this.playerX = GAME_SIZE - PLAYER_SIZE + EDGE_CLIP;
+        if (this.playerY < -EDGE_CLIP) this.playerY = -EDGE_CLIP;
+        if (this.playerY > GAME_SIZE - PLAYER_SIZE + EDGE_CLIP) this.playerY = GAME_SIZE - PLAYER_SIZE + EDGE_CLIP;
 
         // Apply visual position
         this.playerElem.style.left = this.playerX + 'px';
@@ -1249,13 +1276,14 @@ const app = {
             this.score += 1;
             this.coinsCollected++;
             this.updateHUD();
+            this.showScorePop(cCenterX, cCenterY);
             this.coinElem.remove();
 
             if (this.coinsCollected >= 10) {
                 this.coinsCollected = 0;
                 this.level++;
                 this.timeLeft = 60;
-                this.showNotification(`Nivo ${this.level}! Kovanci so hitrejši.`);
+                this.showLevelUp(this.level);
             }
             this.spawnCoin();
         }
@@ -1278,50 +1306,33 @@ const SlalomManager = {
     },
 
     spawnGate(yPos) {
-        // Gap width (variable by level)
-        // Start wider (160px) and narrow down by 5px per level, min 60px
         const baseGap = 160;
         const currentGap = Math.max(60, baseGap - (app.level * 5));
-
         const gap = currentGap;
-        // Gap X center random (avoid edges)
         const minX = 40;
         const maxX = GAME_SIZE - 40;
         const gapX = Math.random() * (maxX - minX - gap) + minX;
 
-        // We actually draw 2 divs: Left Wall and Right Wall
         const area = document.getElementById('game-area');
 
-        const gateL = document.createElement('div');
-        gateL.className = 'slalom-gate absolute bg-red-400 rounded-r';
-        gateL.style.height = '10px';
-        gateL.style.width = gapX + 'px';
-        gateL.style.left = '0px';
-        gateL.style.top = yPos + 'px';
+        const poleHalfW = 4;
 
-        const gateR = document.createElement('div');
-        gateR.className = 'slalom-gate absolute bg-blue-400 rounded-l';
-        gateR.style.height = '10px';
-        gateR.style.width = (GAME_SIZE - (gapX + gap)) + 'px';
-        gateR.style.right = '0px';
-        gateR.style.top = yPos + 'px';
+        // Poles only — no horizontal bars
+        const poleL = document.createElement('div');
+        poleL.className = 'slalom-gate absolute';
+        poleL.style.cssText = `width:8px;height:30px;border-radius:4px;background:#f43f5e;left:${gapX - poleHalfW}px;top:${yPos - 5}px;z-index:3;box-shadow:0 0 6px rgba(244,63,94,0.5);`;
 
-        area.appendChild(gateL);
-        area.appendChild(gateR);
+        const poleR = document.createElement('div');
+        poleR.className = 'slalom-gate absolute';
+        poleR.style.cssText = `width:8px;height:30px;border-radius:4px;background:#0ea5e9;left:${gapX + gap - poleHalfW}px;top:${yPos - 5}px;z-index:3;box-shadow:0 0 6px rgba(14,165,233,0.5);`;
 
-        this.gates.push({
-            y: yPos,
-            gapX: gapX,
-            gapW: gap,
-            elL: gateL,
-            elR: gateR,
-            passed: false
-        });
+        area.appendChild(poleL);
+        area.appendChild(poleR);
+
+        this.gates.push({ y: yPos, gapX, gapW: gap, elL: poleL, elR: poleR, elPL: poleL, elPR: poleR, passed: false });
     },
 
     update() {
-        // Update Logic: Move gates down
-        // Speed increases with level
         const currentSpeed = this.baseSpeed + (app.level * 0.5);
 
         for (let i = this.gates.length - 1; i >= 0; i--) {
@@ -1330,72 +1341,59 @@ const SlalomManager = {
 
             g.elL.style.top = g.y + 'px';
             g.elR.style.top = g.y + 'px';
-
-            // Check Collision / Pass
-            // Player is at app.playerY (bottom of screen)
-            // Gate must intersect Player lines
+            g.elPL.style.top = (g.y - 5) + 'px';
+            g.elPR.style.top = (g.y - 5) + 'px';
 
             const playerTop = app.playerY;
             const playerBot = app.playerY + PLAYER_SIZE;
 
-            // Overlapping Y? gate is 10px high
-            if (g.y + 10 > playerTop && g.y < playerBot) {
-                // Check X Logic
-                // We are SAFE if player is within gap
-                const pLeft = app.playerX;
+            if (g.y + 25 > playerTop && g.y - 5 < playerBot) {
+                const pLeft  = app.playerX;
                 const pRight = app.playerX + PLAYER_SIZE;
-
-                const gapLeft = g.gapX;
+                const gapLeft  = g.gapX;
                 const gapRight = g.gapX + g.gapW;
 
                 if (pLeft > gapLeft && pRight < gapRight) {
-                    // Inside Gap - OK
                     if (!g.passed) {
-                        // Just entering visual feedback?
-                        g.elL.style.backgroundColor = '#4ade80'; // Green
-                        g.elR.style.backgroundColor = '#4ade80';
+                        g.elL.style.background = '#4ade80';
+                        g.elR.style.background = '#4ade80';
+                        g.elPL.style.background = '#4ade80';
+                        g.elPR.style.background = '#4ade80';
                     }
                 } else {
-                    // Hit Wall
-                    if (!g.passed) { // Only hit once
-                        g.elL.style.backgroundColor = '#f87171'; // Red
-                        g.elR.style.backgroundColor = '#f87171';
+                    if (!g.passed) {
+                        g.elL.style.background = '#f87171';
+                        g.elR.style.background = '#f87171';
+                        g.elPL.style.background = '#f87171';
+                        g.elPR.style.background = '#f87171';
                         app.endGameLogic(true, 'CRASH');
                         return;
                     }
                 }
             }
 
-            // Passed Player
             if (g.y > playerBot && !g.passed) {
                 g.passed = true;
                 this.gatesPassed++;
-
-                // Score: 1 pts per gate
                 app.score += 1;
-
-                // Level Up Check: Every 10 gates
+                app.showScorePop(g.gapX + g.gapW / 2, app.playerY, '+1', '#0284c7');
                 if (this.gatesPassed % 10 === 0) {
                     app.levelUpSlalom();
                 }
-
                 app.updateHUD();
             }
 
-            // Remove if off screen
             if (g.y > GAME_SIZE) {
                 g.elL.remove();
                 g.elR.remove();
+                g.elPL.remove();
+                g.elPR.remove();
                 this.gates.splice(i, 1);
-
-                // Spawn new one on top
-                // Random gap vertical distance (~200px)
                 const lastY = this.gates.length > 0 ? Math.min(...this.gates.map(x => x.y)) : 0;
                 this.spawnGate(lastY - 200);
             }
         }
 
-        // Ensure we always have gates coming
         if (this.gates.length < 3) {
             const lastY = this.gates.length > 0 ? Math.min(...this.gates.map(x => x.y)) : 0;
             this.spawnGate(lastY - 200);
@@ -1404,82 +1402,74 @@ const SlalomManager = {
 };
 
 // --- MAZE MANAGER ---
-// --- MAZE MANAGER ---
 const MazeManager = {
-    cellSize: 10, // 10px blocks
-    gridDim: 35,  // 350px / 10px = 35
-    map: [],      // 35x35 grid of 0/1
+    cellSize: 10,
+    gridDim: 35,
+    map: [],
+    logicalDim: 7,
+    cellsPerRoom: 5,
+    difficulty: 'MEDIUM',
+    goalPhysical: 31,
 
-    generate(level) {
-        // Init full wall grid
+    generate(difficulty) {
+        this.difficulty = difficulty;
+        this.cellsPerRoom = difficulty === 'EASY' ? 7 : 5;
+        this.logicalDim   = difficulty === 'EASY' ? 5 : 7;
+        this.goalPhysical = (this.logicalDim - 1) * this.cellsPerRoom;
+
+        const cpr = this.cellsPerRoom;
+        const dim = this.logicalDim;
+
         this.map = Array(this.gridDim).fill(0).map(() => Array(this.gridDim).fill(1));
+        const logicalGrid = Array(dim).fill(0).map(() => Array(dim).fill(0));
 
-        // Logical Grid for Maze (Paths need to be ~40px wide to fit 30px player)
-        // 40px path + 10px wall = 50px logical cell.
-        // 350 / 50 = 7 logical cells.
-        const logicalDim = 7;
-        const logicalGrid = Array(logicalDim).fill(0).map(() => Array(logicalDim).fill(0)); // Visited
-
-        // Recursive Backtracker (DFS)
         const stack = [];
-        const startR = 0;
-        const startC = 0;
+        logicalGrid[0][0] = 1;
+        stack.push({ r: 0, c: 0 });
 
-        logicalGrid[startR][startC] = 1; // Visited
-        stack.push({ r: startR, c: startC });
-
-        // Helper to carve physical grid
         function carve(lr, lc) {
-            const pr = lr * 5 + 1;
-            const pc = lc * 5 + 1;
-            for (let i = 0; i < 4; i++) {
-                for (let j = 0; j < 4; j++) {
-                    if (pr + i < 35 && pc + j < 35) MazeManager.map[pr + i][pc + j] = 0;
+            const prStart = lr * cpr;
+            const pcStart = lc * cpr;
+            const prEnd = (lr === dim - 1) ? MazeManager.gridDim : prStart + cpr - 1;
+            const pcEnd = (lc === dim - 1) ? MazeManager.gridDim : pcStart + cpr - 1;
+            for (let i = prStart; i < prEnd; i++) {
+                for (let j = pcStart; j < pcEnd; j++) {
+                    MazeManager.map[i][j] = 0;
                 }
             }
         }
 
         function carveWall(r1, c1, r2, c2) {
-            const prStart = r1 * 5 + 1; // Align with path rows
-            const pcStart = c1 * 5 + 1; // Align with path cols
-
-            if (r1 === r2) { // Horizontal
-                const wallC = Math.max(c1, c2) * 5;
-                for (let i = 0; i < 4; i++) {
-                    MazeManager.map[prStart + i][wallC] = 0;
-                }
-            } else { // Vertical
-                const wallR = Math.max(r1, r2) * 5;
-                for (let j = 0; j < 4; j++) {
-                    MazeManager.map[wallR][pcStart + j] = 0;
-                }
+            if (r1 === r2) {
+                const wallC = Math.max(c1, c2) * cpr - 1;
+                const prStart = r1 * cpr;
+                const prEnd = (r1 === dim - 1) ? MazeManager.gridDim - 1 : prStart + cpr - 2;
+                for (let i = prStart; i <= prEnd; i++) MazeManager.map[i][wallC] = 0;
+            } else {
+                const wallR = Math.max(r1, r2) * cpr - 1;
+                const pcStart = c1 * cpr;
+                const pcEnd = (c1 === dim - 1) ? MazeManager.gridDim - 1 : pcStart + cpr - 2;
+                for (let j = pcStart; j <= pcEnd; j++) MazeManager.map[wallR][j] = 0;
             }
         }
 
-        carve(startR, startC);
+        carve(0, 0);
 
         while (stack.length > 0) {
             const current = stack[stack.length - 1];
             const neighbors = [];
-
-            // Check NESW
-            const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-            dirs.forEach(([dr, dc]) => {
+            [[0,1],[0,-1],[1,0],[-1,0]].forEach(([dr, dc]) => {
                 const nr = current.r + dr;
                 const nc = current.c + dc;
-                if (nr >= 0 && nr < logicalDim && nc >= 0 && nc < logicalDim && logicalGrid[nr][nc] === 0) {
+                if (nr >= 0 && nr < dim && nc >= 0 && nc < dim && logicalGrid[nr][nc] === 0) {
                     neighbors.push({ r: nr, c: nc });
                 }
             });
 
             if (neighbors.length > 0) {
-                // Pick random
                 const next = neighbors[Math.floor(Math.random() * neighbors.length)];
-
-                // Carve path
                 carveWall(current.r, current.c, next.r, next.c);
-                carve(next.r, next.c); // Carve destination room
-
+                carve(next.r, next.c);
                 logicalGrid[next.r][next.c] = 1;
                 stack.push(next);
             } else {
@@ -1487,7 +1477,6 @@ const MazeManager = {
             }
         }
 
-        // Render
         this.render();
     },
 
@@ -1497,7 +1486,6 @@ const MazeManager = {
         const oldGoal = document.getElementById('maze-goal');
         if (oldGoal) oldGoal.remove();
 
-        // Draw walls on a single canvas instead of hundreds of divs
         let canvas = document.getElementById('maze-canvas');
         if (!canvas) {
             canvas = document.createElement('canvas');
@@ -1509,26 +1497,31 @@ const MazeManager = {
         }
 
         const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, GAME_SIZE, GAME_SIZE);
-        ctx.fillStyle = '#94a3b8';
+        // Fill everything as wall, then punch out passable cells so gradient shows through
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(0, 0, GAME_SIZE, GAME_SIZE);
 
         for (let r = 0; r < this.gridDim; r++) {
             for (let c = 0; c < this.gridDim; c++) {
-                if (this.map[r][c] === 1) {
-                    ctx.fillRect(c * this.cellSize, r * this.cellSize, this.cellSize, this.cellSize);
+                if (this.map[r][c] === 0) {
+                    ctx.clearRect(c * this.cellSize, r * this.cellSize, this.cellSize, this.cellSize);
                 }
             }
         }
 
+        const goalSize = (this.gridDim - this.goalPhysical) * this.cellSize;
+        const goalPx   = this.goalPhysical * this.cellSize;
+        const iconSize = Math.min(24, goalSize - 8);
+
         const goal = document.createElement('div');
         goal.id = 'maze-goal';
-        goal.className = 'absolute bg-green-400/30 border-2 border-green-500 animate-pulse flex items-center justify-center';
-        goal.style.left = (31 * this.cellSize) + 'px';
-        goal.style.top = (31 * this.cellSize) + 'px';
-        goal.style.width = '40px';
-        goal.style.height = '40px';
+        goal.className = 'absolute bg-orange-400/30 border-2 border-orange-500 animate-pulse flex items-center justify-center';
+        goal.style.left   = goalPx + 'px';
+        goal.style.top    = goalPx + 'px';
+        goal.style.width  = goalSize + 'px';
+        goal.style.height = goalSize + 'px';
         goal.style.zIndex = '2';
-        goal.innerHTML = '<svg style="width:24px;height:24px;display:block;margin:auto;margin-top:8px" fill="none" stroke="#0d9488" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>';
+        goal.innerHTML = `<svg style="width:${iconSize}px;height:${iconSize}px;display:block;margin:auto" fill="none" stroke="#ea580c" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0"/></svg>`;
         gameArea.appendChild(goal);
     },
 
@@ -1542,18 +1535,14 @@ const MazeManager = {
         // Convert to Grid coords (min/max cells touched)
         // Safety margin: Shrink player box slightly for collision to avoid "snagging"
         const margin = 4;
-        const c1 = Math.floor((pLeft + margin) / this.cellSize);
-        const c2 = Math.floor((pRight - margin) / this.cellSize);
-        const r1 = Math.floor((pTop + margin) / this.cellSize);
-        const r2 = Math.floor((pBot - margin) / this.cellSize);
+        const c1 = Math.max(0, Math.floor((pLeft + margin) / this.cellSize));
+        const c2 = Math.min(this.gridDim - 1, Math.floor((pRight - margin) / this.cellSize));
+        const r1 = Math.max(0, Math.floor((pTop + margin) / this.cellSize));
+        const r2 = Math.min(this.gridDim - 1, Math.floor((pBot - margin) / this.cellSize));
 
         for (let r = r1; r <= r2; r++) {
             for (let c = c1; c <= c2; c++) {
-                if (r >= 0 && r < this.gridDim && c >= 0 && c < this.gridDim) {
-                    if (this.map[r][c] === 1) return true; // Collision
-                } else {
-                    return true; // Out of bounds
-                }
+                if (this.map[r][c] === 1) return true;
             }
         }
         return false;
@@ -1564,19 +1553,17 @@ const MazeManager = {
         const c1 = Math.floor((pX + margin) / this.cellSize);
         const r1 = Math.floor((pY + margin) / this.cellSize);
 
-        // Check Goal
-        // Goal is at 31,31 (logical 6,6)
-        if (c1 >= 31 && r1 >= 31) {
-            // Victory
+        if (c1 >= this.goalPhysical && r1 >= this.goalPhysical) {
+            const goalPx = this.goalPhysical * this.cellSize;
+            const goalCenter = goalPx + (this.gridDim - this.goalPhysical) * this.cellSize / 2;
+            app.showScorePop(goalCenter, goalCenter, '+10', '#ea580c');
             app.score += 10;
             app.level++;
-            app.timeLeft = 60; // Reset time to 60s
-            app.showNotification(`Labirint rešen! +10 točk (Nivo ${app.level})`);
-
-            // Move player back to start (Logical 0,0 -> 10,10)
-            app.playerX = 15; // 1*10 + margin
-            app.playerY = 15;
-            this.generate(app.level);
+            app.timeLeft = 60;
+            app.showLevelUp(app.level);
+            app.playerX = 2;
+            app.playerY = 2;
+            this.generate(this.difficulty);
             return true;
         }
         return false;
