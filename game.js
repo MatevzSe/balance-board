@@ -407,6 +407,27 @@ const app = {
         ProfileManager.init();
         DailyGoalManager.init();
 
+        // Dev mode: restore state and wire 9-tap unlock on logo
+        if (localStorage.getItem('dev_mode')) {
+            document.getElementById('debug-view').classList.remove('hidden');
+        }
+        let tapCount = 0, tapTimer = null;
+        document.getElementById('logo-tap-target').addEventListener('click', () => {
+            tapCount++;
+            clearTimeout(tapTimer);
+            tapTimer = setTimeout(() => { tapCount = 0; }, 1500);
+            if (tapCount >= 9) {
+                tapCount = 0;
+                const dbg = document.getElementById('debug-view');
+                const nowHidden = dbg.classList.toggle('hidden');
+                if (nowHidden) {
+                    localStorage.removeItem('dev_mode');
+                } else {
+                    localStorage.setItem('dev_mode', '1');
+                }
+            }
+        });
+
         // Connect Button
         document.getElementById('connectBtn').addEventListener('click', () => this.connectBluetooth());
 

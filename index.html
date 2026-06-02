@@ -47,7 +47,7 @@
 
         <!-- DEBUG VIEW (Persistent - Bottom Left) -->
         <div id="debug-view"
-            class="absolute bottom-4 left-4 z-40 p-2 bg-black/70 backdrop-blur text-white text-[10px] font-mono rounded-lg opacity-80 max-w-[150px]">
+            class="hidden absolute bottom-4 left-4 z-40 p-2 bg-black/70 backdrop-blur text-white text-[10px] font-mono rounded-lg opacity-80 max-w-[150px]">
             <div>RAW DATA</div>
             <div>Pitch: <span id="dbg-pitch">0</span></div>
             <div>Roll: <span id="dbg-roll">0</span></div>
@@ -181,7 +181,7 @@
 
             <header class="w-full flex justify-center pt-2 pb-0 mb-0">
                 <div class="flex items-center gap-3 select-none">
-                    <img src="logo.svg" class="h-9 w-auto shrink-0" alt="">
+                    <img src="logo.svg" class="h-9 w-auto shrink-0" alt="" id="logo-tap-target">
                     <div class="flex items-center gap-2">
                         <span class="font-['Poppins'] font-light text-sm tracking-[0.2em] text-slate-600">SMART</span>
                         <span class="font-['Poppins'] font-light text-sm tracking-[0.2em] text-slate-600">BALANCE BOARD</span>
