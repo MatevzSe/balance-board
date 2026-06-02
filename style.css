@@ -1,3 +1,7 @@
+html, body {
+    overscroll-behavior: none;
+}
+
 /* Main Game Board - Yoga Mat / Soft Surface Style */
 #game-area {
     box-sizing: content-box; /* border is outside the 350×350 content area */
