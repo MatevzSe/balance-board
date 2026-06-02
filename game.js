@@ -351,9 +351,7 @@ const DailyGoalManager = {
         return `${n} ${label} zapored`;
     },
 
-    _celebrate() {
-        app.showNotification('Dnevni cilj dosežen! 🎯', 3000);
-    }
+    _celebrate() { }
 };
 
 // --- APP MANAGER ---
@@ -526,33 +524,8 @@ const app = {
         this.showMenu();
     },
 
-    // --- NOTIFICATION SYSTEM ---
-    showNotification(message, duration = 3000) {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
-
-        const toast = document.createElement('div');
-        toast.className = "bg-slate-800 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-bounce-in opacity-0 translate-y-4 transition-all duration-300 transform";
-        toast.innerHTML = `<svg class="w-5 h-5 shrink-0 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg> <span class="font-medium">${message}</span>`;
-
-        container.appendChild(toast);
-
-        // Trigger animation
-        requestAnimationFrame(() => {
-            toast.classList.remove('opacity-0', 'translate-y-4');
-        });
-
-        setTimeout(() => {
-            toast.classList.add('opacity-0', '-translate-y-4');
-            setTimeout(() => toast.remove(), 300);
-        }, duration);
-    },
-
     selectGame(gameMode) {
-        if (!this.isConnected) {
-            this.showNotification("Prosim, najprej poveži desko!");
-            return;
-        }
+        if (!this.isConnected) return;
         this.activeGame = gameMode;
 
         // Button Visibility Logic (Do this before branching for TEST)
@@ -779,7 +752,6 @@ const app = {
             document.getElementById('go-reason').innerText = reasonText;
             modal.classList.remove('hidden');
         } else {
-            this.showNotification(message, 5000);
             this.showMenu();
         }
     },
@@ -1040,10 +1012,8 @@ const app = {
                 btn.innerText = oldText;
                 btn.classList.replace('bg-green-600', 'bg-teal-600');
                 this.closeCalibration();
-                this.showNotification("Kalibracija shranjena!");
             }, 1000);
         } else {
-            this.showNotification("Kalibracija shranjena!");
             this.closeCalibration();
         }
     },
@@ -1052,7 +1022,6 @@ const app = {
         ProfileManager.data.calibration.pitch = 0;
         ProfileManager.data.calibration.roll = 0;
         ProfileManager.save();
-        this.showNotification("Kalibracija ponastavljena na 0.");
         this.closeCalibration();
     },
 
@@ -1092,7 +1061,6 @@ const app = {
             document.getElementById('device-status').className = "text-xs text-center text-rose-500 font-bold mb-2";
             const btn = document.getElementById('connectBtn');
             if (btn) btn.className = "w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200";
-            this.showNotification("Povezava ni uspela. Preverite, če je deska vklopljena.", 5000);
         }
     },
 
@@ -1109,7 +1077,6 @@ const app = {
         const btn = document.getElementById('connectBtn');
         if (btn) btn.className = "w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200";
 
-        this.showNotification("Deska se je odklopila!", 5000);
         this.showMenu();
     },
 
@@ -1164,7 +1131,6 @@ const app = {
             this.processBatteryLevel(bat);
         }, 1000);
 
-        this.showNotification("Simulacija zagnana. Premikaj miško nad igro.");
     },
 
     startChargingSimulation() {
@@ -1204,7 +1170,6 @@ const app = {
             this.processBatteryLevel(bat);
         }, 1000);
 
-        this.showNotification("Simulacija polnjenja zagnana.");
     },
 
     stopSimulation() {
@@ -1218,7 +1183,6 @@ const app = {
             this._simMouseHandler = null;
         }
         this.onDisconnect();
-        this.showNotification("Simulacija ustavljena.");
     },
 
     resetProfile() {
@@ -1232,7 +1196,6 @@ const app = {
             calibration: ProfileManager.data.calibration
         };
         ProfileManager.updateUI();
-        this.showNotification("Zgodovina iger je bila izbrisana.");
     },
 
     handleData(event) {
