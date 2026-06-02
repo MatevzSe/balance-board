@@ -552,7 +552,17 @@ const app = {
     },
 
     selectGame(gameMode) {
-        if (!this.isConnected) return;
+        if (!this.isConnected) {
+            const btn = document.getElementById('connectBtn');
+            if (btn) {
+                btn.classList.remove('shake');
+                void btn.offsetWidth; // reflow to restart animation
+                btn.classList.add('shake');
+                btn.addEventListener('animationend', () => btn.classList.remove('shake'), { once: true });
+            }
+            if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+            return;
+        }
         this.activeGame = gameMode;
 
         // Button Visibility Logic (Do this before branching for TEST)

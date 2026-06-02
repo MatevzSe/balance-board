@@ -2,6 +2,18 @@ html, body {
     overscroll-behavior: none;
 }
 
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-6px); }
+    40%       { transform: translateX(6px); }
+    60%       { transform: translateX(-4px); }
+    80%       { transform: translateX(4px); }
+}
+
+.shake {
+    animation: shake 0.4s ease;
+}
+
 /* Main Game Board - Yoga Mat / Soft Surface Style */
 #game-area {
     box-sizing: content-box; /* border is outside the 350×350 content area */
