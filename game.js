@@ -407,16 +407,17 @@ const app = {
         ProfileManager.init();
         DailyGoalManager.init();
 
-        // Dev mode: restore state and wire 9-tap unlock on logo
+        // Dev mode: restore state and wire 7-tap unlock on logo
         if (localStorage.getItem('dev_mode')) {
             document.getElementById('debug-view').classList.remove('hidden');
         }
         let tapCount = 0, tapTimer = null;
-        document.getElementById('logo-tap-target').addEventListener('click', () => {
+        const logo = document.getElementById('logo-tap-target');
+        logo.addEventListener('click', () => {
             tapCount++;
             clearTimeout(tapTimer);
             tapTimer = setTimeout(() => { tapCount = 0; }, 1500);
-            if (tapCount >= 9) {
+            if (tapCount >= 7) {
                 tapCount = 0;
                 const dbg = document.getElementById('debug-view');
                 const nowHidden = dbg.classList.toggle('hidden');
@@ -425,6 +426,11 @@ const app = {
                 } else {
                     localStorage.setItem('dev_mode', '1');
                 }
+                // Haptic + visual feedback
+                if (navigator.vibrate) navigator.vibrate(nowHidden ? [80] : [40, 60, 40]);
+                logo.style.transition = 'transform 0.15s ease';
+                logo.style.transform = 'scale(1.4)';
+                setTimeout(() => { logo.style.transform = 'scale(1)'; }, 150);
             }
         });
 
