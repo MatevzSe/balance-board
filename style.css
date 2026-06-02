@@ -74,33 +74,6 @@ html, body {
     animation: level-pop 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Background blob animation */
-@keyframes blob {
-    0% {
-        transform: translate(0px, 0px) scale(1);
-    }
-
-    33% {
-        transform: translate(30px, -50px) scale(1.1);
-    }
-
-    66% {
-        transform: translate(-20px, 20px) scale(0.9);
-    }
-
-    100% {
-        transform: translate(0px, 0px) scale(1);
-    }
-}
-
-.animate-blob {
-    animation: blob 14s infinite;
-}
-
-.animation-delay-2000 {
-    animation-delay: 2s;
-}
-
 /* Utils */
 .hidden {
     display: none !important;
