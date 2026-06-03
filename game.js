@@ -1381,14 +1381,14 @@ const app = {
         if (opacity <= 0.01) { arrow.style.opacity = '0'; return; }
 
         const deg = Math.atan2(this._vy, this._vx) * 180 / Math.PI;
-        const scale = Math.max(0.7, Math.min(1.7, 0.7 + speed * 0.14));
+        const scale = Math.max(0.35, Math.min(1.8, 0.35 + speed * 0.25));
         const cx = this.playerX + PLAYER_SIZE / 2;
         const cy = this.playerY + PLAYER_SIZE / 2;
 
         // translateX (constant 18px = ball radius + 3px gap) is applied before scale,
         // so the gap stays tight regardless of how big the arrow grows with speed.
         arrow.style.left = cx + 'px';
-        arrow.style.top = (cy - 15) + 'px';
+        arrow.style.top = (cy - 12) + 'px';
         arrow.style.opacity = opacity.toFixed(2);
         arrow.style.transform = `rotate(${deg}deg) translateX(18px) scale(${scale})`;
     },
@@ -1447,8 +1447,9 @@ const app = {
         this.playerElem.style.left = this.playerX + 'px';
         this.playerElem.style.top = this.playerY + 'px';
 
-        // Direction arrow (skip SLALOM — movement is X-only, arrow adds noise)
-        if (this.activeGame !== 'SLALOM') this.updateArrow(dx, dy);
+        // Direction arrow — SLALOM moves on X only, so feed it horizontal velocity
+        if (this.activeGame === 'SLALOM') this.updateArrow(dx * 1.5, 0);
+        else this.updateArrow(dx, dy);
 
         // Collision & Game Logic
         if (this.activeGame === 'COIN') {
