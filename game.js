@@ -28,6 +28,7 @@ const GAME_THEMES = {
         medium: { btn: 'w-full py-4 bg-teal-100 hover:bg-teal-200 text-teal-900 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',  desc: 'text-xs text-teal-700/60 block' },
         hard:   { btn: 'w-full py-4 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-teal-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
         player: { bg: 'linear-gradient(135deg,#2dd4bf,#0d9488)', shadow: '0 4px 6px rgba(13,148,136,0.3)' },
+        arrow: '#0d9488',
         levelCls: 'text-2xl font-bold text-teal-600',
         areaBg: 'linear-gradient(135deg,#e0fdf4,#99f6e4)',
     },
@@ -37,6 +38,7 @@ const GAME_THEMES = {
         medium: { btn: 'w-full py-4 bg-rose-100 hover:bg-rose-200 text-rose-900 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',  desc: 'text-xs text-rose-700/60 block' },
         hard:   { btn: 'w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-rose-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
         player: { bg: 'linear-gradient(135deg,#fb7185,#e11d48)', shadow: '0 4px 6px rgba(225,29,72,0.3)' },
+        arrow: '#e11d48',
         levelCls: 'text-2xl font-bold text-rose-600',
         areaBg: 'linear-gradient(135deg,#ffe4e6,#fecdd3)',
     },
@@ -46,6 +48,7 @@ const GAME_THEMES = {
         medium: { btn: 'w-full py-4 bg-sky-100 hover:bg-sky-200 text-sky-900 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',  desc: 'text-xs text-sky-700/60 block' },
         hard:   { btn: 'w-full py-4 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-sky-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
         player: { bg: 'linear-gradient(135deg,#38bdf8,#0284c7)', shadow: '0 4px 6px rgba(2,132,199,0.3)' },
+        arrow: '#0284c7',
         levelCls: 'text-2xl font-bold text-sky-600',
         areaBg: 'linear-gradient(135deg,#e0f2fe,#bae6fd)',
     },
@@ -55,6 +58,7 @@ const GAME_THEMES = {
         medium: { btn: 'w-full py-4 bg-orange-100 hover:bg-orange-200 text-orange-900 font-medium rounded-xl transition-all flex items-center px-5 gap-4 text-left',  desc: 'text-xs text-orange-700/60 block' },
         hard:   { btn: 'w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-xl transition-all shadow-lg shadow-orange-200 flex items-center px-5 gap-4 text-left', desc: 'text-xs text-white/70 block' },
         player: { bg: 'linear-gradient(135deg,#fb923c,#ea580c)', shadow: '0 4px 6px rgba(234,88,12,0.3)' },
+        arrow: '#ea580c',
         levelCls: 'text-2xl font-bold text-orange-600',
         areaBg: 'linear-gradient(135deg,#ffedd5,#fed7aa)',
     },
@@ -648,13 +652,21 @@ const app = {
             if (player) { player.style.background = theme.player.bg; player.style.boxShadow = theme.player.shadow; }
             const levelEl = document.getElementById('game-level');
             if (levelEl) levelEl.className = theme.levelCls;
+            const arrowPath = document.querySelector('#player-arrow path');
+            if (arrowPath) arrowPath.setAttribute('fill', theme.arrow || '#0d9488');
         }
+
+        // Reset direction arrow
+        this._vx = 0;
+        this._vy = 0;
+        const arrow = document.getElementById('player-arrow');
+        if (arrow) arrow.style.opacity = '0';
 
         // Setup Board based on game
         const gameArea = document.getElementById('game-area');
         // Clear old dynamic elements
         Array.from(gameArea.children).forEach(child => {
-            if (child.id !== 'player') child.remove();
+            if (child.id !== 'player' && child.id !== 'player-arrow') child.remove();
         });
 
         // FIX: Always use square/rounded-rect for consistency so user doesn't fall off
@@ -731,6 +743,9 @@ const app = {
         this.isPlaying = false;
         clearInterval(this.timerId);
         cancelAnimationFrame(this.gameLoopId);
+
+        // Hide the direction arrow
+        if (this.arrowElem) this.arrowElem.style.opacity = '0';
 
         if (!finished && reason !== 'QUIT') return; // Just stopped without showing results
 
@@ -1349,6 +1364,35 @@ const app = {
         }
     },
 
+    // Direction arrow: points where the ball moves, grows/fades with speed
+    _vx: 0,
+    _vy: 0,
+    updateArrow(dx, dy) {
+        const arrow = this.arrowElem || (this.arrowElem = document.getElementById('player-arrow'));
+        if (!arrow) return;
+
+        // Smooth the velocity so the arrow doesn't twitch on sensor noise
+        this._vx = this._vx * 0.7 + dx * 0.3;
+        this._vy = this._vy * 0.7 + dy * 0.3;
+        const speed = Math.hypot(this._vx, this._vy);
+
+        // Fade in from a small threshold so a near-still ball has no arrow
+        const opacity = Math.max(0, Math.min(1, (speed - 0.3) / 1.0));
+        if (opacity <= 0.01) { arrow.style.opacity = '0'; return; }
+
+        const deg = Math.atan2(this._vy, this._vx) * 180 / Math.PI;
+        const scale = Math.max(0.7, Math.min(1.7, 0.7 + speed * 0.14));
+        const cx = this.playerX + PLAYER_SIZE / 2;
+        const cy = this.playerY + PLAYER_SIZE / 2;
+
+        // translateX (constant 18px = ball radius + 3px gap) is applied before scale,
+        // so the gap stays tight regardless of how big the arrow grows with speed.
+        arrow.style.left = cx + 'px';
+        arrow.style.top = (cy - 15) + 'px';
+        arrow.style.opacity = opacity.toFixed(2);
+        arrow.style.transform = `rotate(${deg}deg) translateX(18px) scale(${scale})`;
+    },
+
     gameLoop() {
         if (!this.isPlaying) return;
 
@@ -1402,6 +1446,9 @@ const app = {
         // Apply visual position
         this.playerElem.style.left = this.playerX + 'px';
         this.playerElem.style.top = this.playerY + 'px';
+
+        // Direction arrow (skip SLALOM — movement is X-only, arrow adds noise)
+        if (this.activeGame !== 'SLALOM') this.updateArrow(dx, dy);
 
         // Collision & Game Logic
         if (this.activeGame === 'COIN') {

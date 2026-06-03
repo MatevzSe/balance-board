@@ -374,6 +374,10 @@
                 <div id="game-area"
                     class="relative bg-slate-100 rounded-full overflow-hidden shadow-inner border-4 border-white">
                     <!-- Dynamic Game Elements will be injected here -->
+                    <svg id="player-arrow" width="32" height="30" viewBox="0 0 32 30"
+                        style="position:absolute;z-index:9;pointer-events:none;opacity:0;transform-origin:0 50%;will-change:transform,opacity;">
+                        <path d="M0 3 Q5 15 0 27 L30 15 Z" fill="#0d9488"></path>
+                    </svg>
                     <div id="player"></div>
                     <!-- Coins/Maze Walls inserted via JS -->
                 </div>
